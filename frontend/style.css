@@ -1,0 +1,383 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f5f5f5;
+  color: #1a1a1a;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  height: 100vh;
+}
+
+/* ── Sidebar ── */
+#sidebar {
+  width: 300px;
+  min-width: 300px;
+  background: #ffffff;
+  border-right: 1px solid #e0e0e0;
+  padding: 20px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#sidebar h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+.section-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 8px 0;
+}
+
+.sidebar-spacer {
+  flex: 1;
+}
+
+/* ── User Cards ── */
+.user-card {
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.user-card:hover {
+  background: #f9fafb;
+}
+
+.user-card.selected {
+  border-color: currentColor;
+  background: #f0f4ff;
+}
+
+.pt-card {
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #6366f1;
+}
+
+.pt-card.selected {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.user-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-color-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 500;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  font-size: 16px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.user-delete-btn:hover {
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+/* ── User dropdown (slots + availability) ── */
+.user-dropdown {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+  display: none;
+}
+
+.user-card.selected .user-dropdown {
+  display: block;
+}
+
+.slot-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.slot-item .slot-label {
+  flex: 1;
+}
+
+.slot-remove-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #d1d5db;
+  font-size: 14px;
+  padding: 0 4px;
+}
+
+.slot-remove-btn:hover {
+  color: #ef4444;
+}
+
+.availability-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 0;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.availability-remove-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #d1d5db;
+  font-size: 12px;
+  padding: 0 4px;
+}
+
+.availability-remove-btn:hover {
+  color: #ef4444;
+}
+
+.user-dropdown .btn-small {
+  margin-top: 4px;
+}
+
+.slot-section-label,
+.avail-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 6px;
+  margin-bottom: 2px;
+}
+
+/* ── Buttons ── */
+.btn {
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 12px;
+  transition: background 0.15s;
+}
+
+.btn-add {
+  width: 100%;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px dashed #d1d5db;
+}
+
+.btn-add:hover {
+  background: #e5e7eb;
+}
+
+.btn-small {
+  font-size: 11px;
+  padding: 4px 8px;
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+
+.btn-small:hover {
+  background: #e5e7eb;
+}
+
+.btn-schedule {
+  width: 100%;
+  background: #6366f1;
+  color: white;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.btn-schedule:hover {
+  background: #4f46e5;
+}
+
+/* ── Calendar ── */
+#calendar-container {
+  flex: 1;
+  padding: 16px;
+  overflow: auto;
+}
+
+#calendar {
+  height: 100%;
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* FullCalendar overrides */
+.fc {
+  height: 100% !important;
+}
+
+.fc .fc-toolbar-title {
+  font-size: 16px;
+}
+
+.fc .fc-col-header-cell {
+  background: #fafafa;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.fc .fc-timegrid-slot {
+  height: 28px;
+}
+
+.fc .fc-highlight {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+/* ── Dialog ── */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog-overlay.hidden {
+  display: none;
+}
+
+.dialog {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 360px;
+  max-width: 90vw;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.dialog h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialog-body label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dialog-body input,
+.dialog-body select {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.dialog-slot-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.dialog-slot-row select {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.dialog-slot-row .slot-remove-btn {
+  font-size: 16px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.btn-cancel {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.btn-cancel:hover {
+  background: #e5e7eb;
+}
+
+.btn-confirm {
+  background: #6366f1;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background: #4f46e5;
+}
+
+/* ── Calendar info banner ── */
+.calendar-info {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #1e40af;
+  margin-top: 6px;
+}

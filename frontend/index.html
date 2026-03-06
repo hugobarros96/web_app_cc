@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scheduling App</title>
+
+  <!-- FullCalendar from CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.js"></script>
+
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <h2>Scheduling App</h2>
+
+      <!-- PT / Scheduler section -->
+      <div id="pt-section" class="user-card pt-card selected" data-user="__PT__">
+        <div class="user-header">
+          <span class="user-color-dot" style="background: rgba(99,102,241,0.5)"></span>
+          <span class="user-name">Scheduler Availability</span>
+        </div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <!-- User list -->
+      <div id="user-list"></div>
+
+      <!-- Add user button -->
+      <button id="add-user-btn" class="btn btn-add" title="Add new user">+ Add User</button>
+
+      <div class="sidebar-spacer"></div>
+
+      <!-- Start Scheduling button -->
+      <button id="schedule-btn" class="btn btn-schedule">Start Scheduling</button>
+    </aside>
+
+    <main id="calendar-container">
+      <div id="calendar"></div>
+    </main>
+  </div>
+
+  <!-- New User Dialog -->
+  <div id="dialog-overlay" class="dialog-overlay hidden">
+    <div class="dialog">
+      <h3 id="dialog-title">New User</h3>
+      <div class="dialog-body">
+        <label>Name
+          <input type="text" id="dialog-name" placeholder="User name" />
+        </label>
+        <div id="dialog-slots">
+          <label>Slots</label>
+          <div id="dialog-slot-list"></div>
+          <button id="dialog-add-slot" class="btn btn-small">+ Add Slot</button>
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button id="dialog-cancel" class="btn btn-cancel">Cancel</button>
+        <button id="dialog-confirm" class="btn btn-confirm">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
