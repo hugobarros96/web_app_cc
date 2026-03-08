@@ -30,7 +30,11 @@ As example:
 - The availability of the Scheduler user (PT) is always shown in the calender (fixed color preferably more transparent).
 - When we select any user we should see only the availability of that user and the one of the PT (translucid) - when we de-select all users all availabilities should be shown in then calender even if they overlap
 - Button called "Start Scheduling" that will star the optimization code.
+- Results are presented in a tab page and teh results should be in text as well as in graphic form in  the calender.
 
 # Deployment ENV
 - Docker image
 - web app
+- link should be hugobarros.cc/scheduler
+- IP deployment VM: 35.231.149.237
+- Domain: hugobarros.cc

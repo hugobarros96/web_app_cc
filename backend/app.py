@@ -11,9 +11,9 @@ from pydantic import BaseModel
 from .users import Day, Scheduler, User
 from .scheduler import solve
 
-app = FastAPI(title="Scheduling App")
-
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+
+app = FastAPI(title="Scheduling App")
 
 
 # ── API models ──
@@ -47,9 +47,9 @@ class SolveResponse(BaseModel):
     status: str
 
 
-# ── API endpoints ──
+# ── Solver endpoint ──
 
-@app.post("/api/solve", response_model=SolveResponse)
+@app.post("/scheduler/api/solve", response_model=SolveResponse)
 async def api_solve(req: SolveRequest):
     scheduler = Scheduler(name="PT")
     for tw in req.pt_availability:
@@ -82,11 +82,25 @@ async def api_solve(req: SolveRequest):
     )
 
 
-# ── Static files (must be after API routes) ──
-
-app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
-
+# ── Landing page ──
 
 @app.get("/")
-async def index():
+async def landing():
+    return FileResponse(FRONTEND_DIR / "landing.html")
+
+
+# ── Scheduler app under /scheduler ──
+
+@app.get("/scheduler")
+async def scheduler_index():
     return FileResponse(FRONTEND_DIR / "index.html")
+
+
+@app.get("/scheduler/results")
+async def results():
+    return FileResponse(FRONTEND_DIR / "results.html")
+
+
+# ── Static files (must be after explicit routes) ──
+
+app.mount("/scheduler/static", StaticFiles(directory=FRONTEND_DIR), name="static")

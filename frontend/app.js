@@ -12,9 +12,15 @@ let colorIndex = 0;
 const PT_COLOR = "rgba(99,102,241,0.35)";
 const PT_ID = "__PT__";
 
+const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DAY_MAP = {
+  Monday: 0, Tuesday: 1, Wednesday: 2, Thursday: 3,
+  Friday: 4, Saturday: 5, Sunday: 6,
+};
+
 // App state
 const state = {
-  selectedUser: PT_ID, // who is currently selected in the sidebar
+  selectedUser: PT_ID,
   users: [],           // { id, name, color, slots: [{duration}], availability: [{day, start, end, eventId}] }
   ptAvailability: [],  // [{day, start, end, eventId}]
 };
@@ -42,8 +48,69 @@ function formatTime(dateStr) {
   return d.toTimeString().slice(0, 5);
 }
 
-function dayOfWeek(dateStr) {
-  return new Date(dateStr).getDay(); // 0=Sun
+/* ──────────────────────────────────────────────
+   Persistence — save/load via localStorage
+   ────────────────────────────────────────────── */
+
+const STORAGE_KEY = "schedulingData";
+
+function persistState() {
+  const payload = {
+    ptAvailability: state.ptAvailability.map((a) => ({
+      day: a.day,
+      start: a.start,
+      end: a.end,
+    })),
+    users: state.users.map((u) => ({
+      name: u.name,
+      color: u.color,
+      slots: u.slots.map((s) => s.duration),
+      availability: u.availability.map((a) => ({
+        day: a.day,
+        start: a.start,
+        end: a.end,
+      })),
+    })),
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+
+    // Load PT availability
+    state.ptAvailability = (data.ptAvailability || []).map((a) => ({
+      day: a.day,
+      start: a.start,
+      end: a.end,
+      eventId: "ev_" + nextEventId++,
+    }));
+
+    // Load users
+    state.users = (data.users || []).map((u) => {
+      const color = u.color;
+      const cIdx = COLORS.indexOf(color);
+      if (cIdx >= colorIndex) colorIndex = cIdx + 1;
+
+      return {
+        id: "user_" + nextEventId++,
+        name: u.name,
+        color,
+        slots: u.slots.map((d) => ({ duration: d })),
+        availability: u.availability.map((a) => ({
+          day: a.day,
+          start: a.start,
+          end: a.end,
+          eventId: "ev_" + nextEventId++,
+        })),
+      };
+    });
+  } catch (err) {
+    console.error("Failed to load state from localStorage:", err);
+  }
 }
 
 /* ──────────────────────────────────────────────
@@ -73,19 +140,20 @@ document.addEventListener("DOMContentLoaded", function () {
     eventOverlap: true,
     slotEventOverlap: true,
 
-    // Drag-select to add availability
     select: function (info) {
       handleCalendarSelect(info);
       calendar.unselect();
     },
 
-    // Click event to remove availability
     eventClick: function (info) {
       handleEventClick(info);
     },
   });
 
   calendar.render();
+
+  // Load saved state from localStorage
+  loadState();
 
   // Sidebar event listeners
   document.getElementById("pt-section").addEventListener("click", () => selectUser(PT_ID));
@@ -97,6 +165,7 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("dialog-confirm").addEventListener("click", confirmDialog);
   document.getElementById("dialog-add-slot").addEventListener("click", addDialogSlot);
 
+  refreshCalendarEvents();
   renderSidebar();
 });
 
@@ -123,6 +192,7 @@ function handleCalendarSelect(info) {
 
   refreshCalendarEvents();
   renderSidebar();
+  persistState();
 }
 
 function handleEventClick(info) {
@@ -134,6 +204,7 @@ function handleEventClick(info) {
     state.ptAvailability.splice(ptIdx, 1);
     refreshCalendarEvents();
     renderSidebar();
+    persistState();
     return;
   }
 
@@ -144,6 +215,7 @@ function handleEventClick(info) {
       user.availability.splice(idx, 1);
       refreshCalendarEvents();
       renderSidebar();
+      persistState();
       return;
     }
   }
@@ -154,19 +226,17 @@ function handleEventClick(info) {
    ────────────────────────────────────────────── */
 
 function refreshCalendarEvents() {
-  // Remove all events
   calendar.getEvents().forEach((e) => e.remove());
 
   const selected = state.selectedUser;
 
-  // Helper: get a real date for a day name in the current calendar week
   function getDateForDay(dayName) {
     const start = calendar.view.currentStart;
-    const dayMap = {
+    const dayMapJS = {
       Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4,
       Friday: 5, Saturday: 6, Sunday: 0,
     };
-    const target = dayMap[dayName];
+    const target = dayMapJS[dayName];
     for (let i = 0; i < 7; i++) {
       const d = new Date(start);
       d.setDate(d.getDate() + i);
@@ -207,7 +277,7 @@ function refreshCalendarEvents() {
         });
       }
     }
-  } else if (!selected || selected === PT_ID) {
+  } else {
     // Show all users' availability
     for (const user of state.users) {
       for (const a of user.availability) {
@@ -231,11 +301,9 @@ function refreshCalendarEvents() {
    ────────────────────────────────────────────── */
 
 function renderSidebar() {
-  // PT card selection state
   const ptCard = document.getElementById("pt-section");
   ptCard.classList.toggle("selected", state.selectedUser === PT_ID);
 
-  // PT availability count
   let ptInfo = ptCard.querySelector(".calendar-info");
   if (state.ptAvailability.length > 0) {
     if (!ptInfo) {
@@ -248,7 +316,6 @@ function renderSidebar() {
     ptInfo.remove();
   }
 
-  // User list
   const list = document.getElementById("user-list");
   list.innerHTML = "";
 
@@ -260,7 +327,6 @@ function renderSidebar() {
     card.style.borderColor = isSelected ? user.color : "";
     card.dataset.user = user.id;
 
-    // Header row
     const header = document.createElement("div");
     header.className = "user-header";
 
@@ -284,11 +350,10 @@ function renderSidebar() {
     header.append(dot, name, delBtn);
     card.appendChild(header);
 
-    // Dropdown content
     const dropdown = document.createElement("div");
     dropdown.className = "user-dropdown";
 
-    // Slots section
+    // Slots
     const slotLabel = document.createElement("div");
     slotLabel.className = "slot-section-label";
     slotLabel.textContent = `Slots (${user.slots.length})`;
@@ -311,6 +376,7 @@ function renderSidebar() {
         e.stopPropagation();
         user.slots.splice(i, 1);
         renderSidebar();
+        persistState();
       });
 
       row.append(label, removeBtn);
@@ -328,7 +394,7 @@ function renderSidebar() {
       dropdown.appendChild(addSlotBtn);
     }
 
-    // Availability section
+    // Availability
     if (user.availability.length > 0) {
       const availLabel = document.createElement("div");
       availLabel.className = "avail-section-label";
@@ -351,6 +417,7 @@ function renderSidebar() {
           user.availability.splice(i, 1);
           refreshCalendarEvents();
           renderSidebar();
+          persistState();
         });
 
         row.append(label, removeBtn);
@@ -359,7 +426,6 @@ function renderSidebar() {
     }
 
     card.appendChild(dropdown);
-
     card.addEventListener("click", () => selectUser(user.id));
     list.appendChild(card);
   }
@@ -370,7 +436,6 @@ function renderSidebar() {
    ────────────────────────────────────────────── */
 
 function selectUser(userId) {
-  // Toggle: clicking the already-selected user deselects to PT
   if (state.selectedUser === userId && userId !== PT_ID) {
     state.selectedUser = PT_ID;
   } else {
@@ -389,13 +454,15 @@ function deleteUser(userId) {
   if (state.selectedUser === userId) state.selectedUser = PT_ID;
   refreshCalendarEvents();
   renderSidebar();
+
+  persistState();
 }
 
 /* ──────────────────────────────────────────────
-   Dialog — New User
+   Dialog — New User / Add Slot
    ────────────────────────────────────────────── */
 
-let dialogMode = "new-user"; // or "add-slot"
+let dialogMode = "new-user";
 let dialogTargetUserId = null;
 
 function openNewUserDialog() {
@@ -407,7 +474,7 @@ function openNewUserDialog() {
   document.getElementById("dialog-slots").style.display = "";
   document.getElementById("dialog-slot-list").innerHTML = "";
   document.getElementById("dialog-confirm").textContent = "Create";
-  addDialogSlot(); // start with one slot
+  addDialogSlot();
   document.getElementById("dialog-overlay").classList.remove("hidden");
 }
 
@@ -485,6 +552,7 @@ function confirmDialog() {
   closeDialog();
   refreshCalendarEvents();
   renderSidebar();
+  persistState();
 }
 
 /* ──────────────────────────────────────────────
@@ -492,11 +560,6 @@ function confirmDialog() {
    ────────────────────────────────────────────── */
 
 async function runScheduling() {
-  const DAY_MAP = {
-    Monday: 0, Tuesday: 1, Wednesday: 2, Thursday: 3,
-    Friday: 4, Saturday: 5, Sunday: 6,
-  };
-
   const payload = {
     pt_availability: state.ptAvailability.map((a) => ({
       day: DAY_MAP[a.day],
@@ -520,23 +583,21 @@ async function runScheduling() {
   btn.disabled = true;
 
   try {
-    const resp = await fetch("/api/solve", {
+    const resp = await fetch("/scheduler/api/solve", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
     const result = await resp.json();
 
-    if (result.status === "OPTIMAL" || result.status === "FEASIBLE") {
-      alert(
-        `Scheduled ${result.total_scheduled}/${result.total_requested} slots (${result.status})\n\n` +
-        result.assignments
-          .map((a) => `${a.user_name}: ${a.day} ${a.start_time}-${a.end_time}`)
-          .join("\n")
-      );
-    } else {
-      alert(`Scheduling failed: ${result.status}`);
+    const userColors = {};
+    for (const u of state.users) {
+      userColors[u.name] = u.color;
     }
+    result.user_colors = userColors;
+
+    sessionStorage.setItem("schedulingResults", JSON.stringify(result));
+    window.open("/scheduler/results", "_blank");
   } catch (err) {
     alert("Error: " + err.message);
   } finally {

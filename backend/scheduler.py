@@ -103,7 +103,7 @@ class ScheduleResult:
     status: str  # "OPTIMAL", "FEASIBLE", "INFEASIBLE", "ERROR"
 
 
-def solve(scheduler: Scheduler, time_limit_seconds: float = 10.0) -> ScheduleResult:
+def solve(scheduler: Scheduler, time_limit_seconds: float = 100.0) -> ScheduleResult:
     """Run the CP-SAT optimiser and return the schedule.
 
     Args:
@@ -154,6 +154,21 @@ def solve(scheduler: Scheduler, time_limit_seconds: float = 10.0) -> ScheduleRes
         is_scheduled = model.new_bool_var(f"{user.name}_s{s_idx}_sched")
         model.add(sum(bool_vars) == is_scheduled)
         scheduled_indicators.append(is_scheduled)
+
+    # Constraint: no two slots for the same user on the same day
+    from collections import defaultdict
+    user_day_vars: Dict[str, Dict[int, List[cp_model.IntVar]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
+    for user, s_idx, slot_req, start_vars in slot_vars:
+        for start_b, var in start_vars:
+            day_idx = start_b // BLOCKS_PER_DAY
+            user_day_vars[user.name][day_idx].append(var)
+
+    for uname, day_map in user_day_vars.items():
+        for day_idx, vars_on_day in day_map.items():
+            if len(vars_on_day) > 1:
+                model.add_at_most_one(vars_on_day)
 
     # Constraint: no two sessions overlap (at most 1 session per block)
     block_usage: Dict[int, List[cp_model.IntVar]] = {}
