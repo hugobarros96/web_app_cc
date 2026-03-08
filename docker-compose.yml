@@ -1,11 +1,27 @@
 services:
   web:
     build: .
-    ports:
-      - "8000:8000"
-      - "443:443"
+    expose:
+      - "8000"
     volumes:
       - ./backend:/app/backend
       - ./frontend:/app/frontend
     environment:
       - PYTHONDONTWRITEBYTECODE=1
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  caddy_data:
+  caddy_config:
