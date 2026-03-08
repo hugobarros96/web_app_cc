@@ -198,6 +198,11 @@ document.addEventListener("DOMContentLoaded", function () {
   // Load saved state from localStorage
   loadState();
 
+  // Hamburger toggle
+  document.getElementById("sidebar-toggle").addEventListener("click", () => {
+    document.getElementById("sidebar").classList.toggle("open");
+  });
+
   // Sidebar event listeners
   document.getElementById("pt-section").addEventListener("click", () => selectUser(PT_ID));
   document.getElementById("add-user-btn").addEventListener("click", openNewUserDialog);
@@ -218,7 +223,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 function handleCalendarSelect(info) {
   const userId = state.selectedUser;
-  if (!userId) return;
+  if (userId === null) return;
 
   const evId = "ev_" + nextEventId++;
   const day = getDayName(info.startStr);
@@ -290,24 +295,21 @@ function refreshCalendarEvents() {
     return start.toISOString().slice(0, 10);
   }
 
-  // Always show PT availability (translucent)
-  for (const a of state.ptAvailability) {
-    const date = getDateForDay(a.day);
-    calendar.addEvent({
-      id: a.eventId,
-      title: "PT",
-      start: date + "T" + a.start,
-      end: date + "T" + a.end,
-      backgroundColor: PT_COLOR,
-      borderColor: "rgba(99,102,241,0.6)",
-      textColor: "#4338ca",
-    });
-  }
-
-  if (selected && selected !== PT_ID) {
-    // Show only selected user's availability
-    const user = state.users.find((u) => u.id === selected);
-    if (user) {
+  if (selected === null) {
+    // No user selected — show all availabilities (PT + all users)
+    for (const a of state.ptAvailability) {
+      const date = getDateForDay(a.day);
+      calendar.addEvent({
+        id: a.eventId,
+        title: "PT",
+        start: date + "T" + a.start,
+        end: date + "T" + a.end,
+        backgroundColor: PT_COLOR,
+        borderColor: "rgba(99,102,241,0.6)",
+        textColor: "#4338ca",
+      });
+    }
+    for (const user of state.users) {
       for (const a of user.availability) {
         const date = getDateForDay(a.day);
         calendar.addEvent({
@@ -321,9 +323,24 @@ function refreshCalendarEvents() {
         });
       }
     }
+  } else if (selected === PT_ID) {
+    // PT selected — show only PT availability
+    for (const a of state.ptAvailability) {
+      const date = getDateForDay(a.day);
+      calendar.addEvent({
+        id: a.eventId,
+        title: "PT",
+        start: date + "T" + a.start,
+        end: date + "T" + a.end,
+        backgroundColor: PT_COLOR,
+        borderColor: "rgba(99,102,241,0.6)",
+        textColor: "#4338ca",
+      });
+    }
   } else {
-    // Show all users' availability
-    for (const user of state.users) {
+    // A user is selected — show only that user's availability
+    const user = state.users.find((u) => u.id === selected);
+    if (user) {
       for (const a of user.availability) {
         const date = getDateForDay(a.day);
         calendar.addEvent({
@@ -480,8 +497,8 @@ function renderSidebar() {
    ────────────────────────────────────────────── */
 
 function selectUser(userId) {
-  if (state.selectedUser === userId && userId !== PT_ID) {
-    state.selectedUser = PT_ID;
+  if (state.selectedUser === userId) {
+    state.selectedUser = null;
   } else {
     state.selectedUser = userId;
   }
@@ -495,7 +512,7 @@ function selectUser(userId) {
 
 function deleteUser(userId) {
   state.users = state.users.filter((u) => u.id !== userId);
-  if (state.selectedUser === userId) state.selectedUser = PT_ID;
+  if (state.selectedUser === userId) state.selectedUser = null;
   refreshCalendarEvents();
   renderSidebar();
 
