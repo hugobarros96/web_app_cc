@@ -4,9 +4,7 @@ from pathlib import Path
 from typing import List
 
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 
 from .users import Day, Scheduler, User
@@ -15,17 +13,6 @@ from .scheduler import solve
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
 app = FastAPI(title="Scheduling App")
-
-
-class NoCacheMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        response = await call_next(request)
-        if request.url.path.startswith("/scheduler/static"):
-            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-        return response
-
-
-app.add_middleware(NoCacheMiddleware)
 
 
 # ── API models ──
@@ -113,6 +100,15 @@ async def results():
     return FileResponse(FRONTEND_DIR / "results.html")
 
 
-# ── Static files (must be after explicit routes) ──
+# ── Static files (with no-cache headers) ──
 
-app.mount("/scheduler/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+@app.get("/scheduler/static/{file_path:path}")
+async def static_files(file_path: str):
+    full_path = FRONTEND_DIR / file_path
+    if not full_path.is_file():
+        from fastapi.responses import Response
+        return Response(status_code=404)
+    return FileResponse(
+        full_path,
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+    )
