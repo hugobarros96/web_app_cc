@@ -48,6 +48,49 @@ function formatTime(dateStr) {
   return d.toTimeString().slice(0, 5);
 }
 
+function timeToMinutes(t) {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function minutesToTime(m) {
+  return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
+}
+
+/** Merge overlapping/adjacent availability blocks on the same day in-place. */
+function mergeAvailability(avail) {
+  const byDay = {};
+  for (const a of avail) {
+    if (!byDay[a.day]) byDay[a.day] = [];
+    byDay[a.day].push(a);
+  }
+
+  const merged = [];
+  for (const day of Object.keys(byDay)) {
+    const blocks = byDay[day].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
+    let cur = { day, start: blocks[0].start, end: blocks[0].end, eventId: blocks[0].eventId };
+
+    for (let i = 1; i < blocks.length; i++) {
+      const curEnd = timeToMinutes(cur.end);
+      const nextStart = timeToMinutes(blocks[i].start);
+      const nextEnd = timeToMinutes(blocks[i].end);
+
+      if (nextStart <= curEnd) {
+        // Overlapping or adjacent — extend
+        if (nextEnd > curEnd) {
+          cur.end = blocks[i].end;
+        }
+      } else {
+        merged.push(cur);
+        cur = { day, start: blocks[i].start, end: blocks[i].end, eventId: blocks[i].eventId };
+      }
+    }
+    merged.push(cur);
+  }
+
+  return merged;
+}
+
 /* ──────────────────────────────────────────────
    Persistence — save/load via localStorage
    ────────────────────────────────────────────── */
@@ -82,12 +125,12 @@ function loadState() {
     const data = JSON.parse(raw);
 
     // Load PT availability
-    state.ptAvailability = (data.ptAvailability || []).map((a) => ({
+    state.ptAvailability = mergeAvailability((data.ptAvailability || []).map((a) => ({
       day: a.day,
       start: a.start,
       end: a.end,
       eventId: "ev_" + nextEventId++,
-    }));
+    })));
 
     // Load users
     state.users = (data.users || []).map((u) => {
@@ -100,12 +143,12 @@ function loadState() {
         name: u.name,
         color,
         slots: u.slots.map((d) => ({ duration: d })),
-        availability: u.availability.map((a) => ({
+        availability: mergeAvailability(u.availability.map((a) => ({
           day: a.day,
           start: a.start,
           end: a.end,
           eventId: "ev_" + nextEventId++,
-        })),
+        }))),
       };
     });
   } catch (err) {
@@ -184,10 +227,12 @@ function handleCalendarSelect(info) {
 
   if (userId === PT_ID) {
     state.ptAvailability.push({ day, start, end, eventId: evId });
+    state.ptAvailability = mergeAvailability(state.ptAvailability);
   } else {
     const user = state.users.find((u) => u.id === userId);
     if (!user) return;
     user.availability.push({ day, start, end, eventId: evId });
+    user.availability = mergeAvailability(user.availability);
   }
 
   refreshCalendarEvents();
@@ -256,7 +301,6 @@ function refreshCalendarEvents() {
       backgroundColor: PT_COLOR,
       borderColor: "rgba(99,102,241,0.6)",
       textColor: "#4338ca",
-      display: "background",
     });
   }
 
