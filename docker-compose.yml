@@ -3,6 +3,8 @@ services:
     build: .
     expose:
       - "8000"
+    ports:
+      - "8000:8000"
     volumes:
       - ./backend:/app/backend
       - ./frontend:/app/frontend

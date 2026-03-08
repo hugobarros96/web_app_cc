@@ -242,26 +242,26 @@ function handleCalendarSelect(info) {
 
 function handleEventClick(info) {
   const evId = info.event.id;
+  const selected = state.selectedUser;
 
-  // Try removing from PT
-  const ptIdx = state.ptAvailability.findIndex((a) => a.eventId === evId);
-  if (ptIdx !== -1) {
-    state.ptAvailability.splice(ptIdx, 1);
-    refreshCalendarEvents();
-    renderSidebar();
-    persistState();
-    return;
-  }
-
-  // Try removing from users
-  for (const user of state.users) {
+  // Only allow deleting blocks belonging to the selected user
+  if (selected === PT_ID) {
+    const ptIdx = state.ptAvailability.findIndex((a) => a.eventId === evId);
+    if (ptIdx !== -1) {
+      state.ptAvailability.splice(ptIdx, 1);
+      refreshCalendarEvents();
+      renderSidebar();
+      persistState();
+    }
+  } else {
+    const user = state.users.find((u) => u.id === selected);
+    if (!user) return;
     const idx = user.availability.findIndex((a) => a.eventId === evId);
     if (idx !== -1) {
       user.availability.splice(idx, 1);
       refreshCalendarEvents();
       renderSidebar();
       persistState();
-      return;
     }
   }
 }
