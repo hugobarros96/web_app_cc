@@ -67,12 +67,16 @@ class SolveResponse(BaseModel):
 async def api_solve(req: SolveRequest):
     scheduler = Scheduler(name="PT")
     for tw in req.pt_availability:
+        if tw.start >= tw.end:
+            continue
         scheduler.add_availability(Day(tw.day), tw.start, tw.end)
 
     for u_in in req.users:
         user = User(name=u_in.name, color=u_in.color,
                     member_names=u_in.member_names or [])
         for tw in u_in.availability:
+            if tw.start >= tw.end:
+                continue
             user.add_availability(Day(tw.day), tw.start, tw.end)
         for dur in u_in.slots:
             user.add_slot_request(dur)
