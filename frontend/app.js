@@ -235,6 +235,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Hamburger toggle
   document.getElementById("sidebar-toggle").addEventListener("click", () => {
     document.getElementById("sidebar").classList.toggle("open");
+    setTimeout(() => calendar.updateSize(), 300);
   });
 
   // Sidebar event listeners
