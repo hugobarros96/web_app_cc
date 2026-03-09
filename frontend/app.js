@@ -672,10 +672,22 @@ async function runScheduling() {
     const result = await resp.json();
 
     const userColors = {};
+    const userAvailability = {};
     for (const u of state.users) {
       userColors[u.name] = u.color;
+      userAvailability[u.name] = u.availability.map((a) => ({
+        day: a.day,
+        start: a.start,
+        end: a.end,
+      }));
     }
     result.user_colors = userColors;
+    result.user_availability = userAvailability;
+    result.pt_availability = state.ptAvailability.map((a) => ({
+      day: a.day,
+      start: a.start,
+      end: a.end,
+    }));
 
     sessionStorage.setItem("schedulingResults", JSON.stringify(result));
     sessionStorage.setItem("schedulingPayload", JSON.stringify(payload));
