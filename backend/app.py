@@ -27,6 +27,7 @@ class UserIn(BaseModel):
     color: str
     slots: List[int]  # durations in minutes
     availability: List[TimeWindowIn]
+    member_names: List[str] | None = None  # non-empty for group users
 
 class PreviousAssignment(BaseModel):
     user_name: str
@@ -69,7 +70,8 @@ async def api_solve(req: SolveRequest):
         scheduler.add_availability(Day(tw.day), tw.start, tw.end)
 
     for u_in in req.users:
-        user = User(name=u_in.name, color=u_in.color)
+        user = User(name=u_in.name, color=u_in.color,
+                    member_names=u_in.member_names or [])
         for tw in u_in.availability:
             user.add_availability(Day(tw.day), tw.start, tw.end)
         for dur in u_in.slots:

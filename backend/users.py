@@ -77,6 +77,7 @@ class User:
     availability: List[TimeWindow] = field(default_factory=list)
     slot_requests: List[SlotRequest] = field(default_factory=list)
     color: str = "#3B82F6"  # default blue, overridden with random color
+    member_names: List[str] = field(default_factory=list)  # non-empty for group users
 
     def __post_init__(self) -> None:
         if len(self.slot_requests) > MAX_SLOTS_PER_USER:
@@ -137,3 +138,4 @@ class Scheduler:
             if u.name == name:
                 return u
         return None
+

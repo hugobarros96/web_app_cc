@@ -174,6 +174,8 @@ def solve(scheduler: Scheduler, time_limit_seconds: float = 100.0,
         scheduled_indicators.append(is_scheduled)
 
     # Constraint: no two slots for the same user on the same day
+    # For group users (member_names non-empty), their slots also count
+    # against each member's same-day constraint.
     from collections import defaultdict
     user_day_vars: Dict[str, Dict[int, List[cp_model.IntVar]]] = defaultdict(
         lambda: defaultdict(list)
@@ -182,6 +184,9 @@ def solve(scheduler: Scheduler, time_limit_seconds: float = 100.0,
         for start_b, var in start_vars:
             day_idx = start_b // BLOCKS_PER_DAY
             user_day_vars[user.name][day_idx].append(var)
+            # Group users: also add to each member's day map
+            for member_name in user.member_names:
+                user_day_vars[member_name][day_idx].append(var)
 
     for uname, day_map in user_day_vars.items():
         for day_idx, vars_on_day in day_map.items():

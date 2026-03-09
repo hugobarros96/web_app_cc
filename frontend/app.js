@@ -23,6 +23,7 @@ const state = {
   selectedUser: PT_ID,
   users: [],           // { id, name, color, slots: [{duration}], availability: [{day, start, end, eventId}] }
   ptAvailability: [],  // [{day, start, end, eventId}]
+  groupSlots: [],      // { id, duration, memberIds: [userId, ...] }
 };
 
 let calendar;
@@ -114,6 +115,11 @@ function persistState() {
         end: a.end,
       })),
     })),
+    groupSlots: state.groupSlots.map((g) => ({
+      id: g.id,
+      duration: g.duration,
+      memberIds: g.memberIds,
+    })),
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
@@ -151,6 +157,13 @@ function loadState() {
         }))),
       };
     });
+
+    // Load group slots
+    state.groupSlots = (data.groupSlots || []).map((g) => ({
+      id: g.id,
+      duration: g.duration,
+      memberIds: g.memberIds,
+    }));
   } catch (err) {
     console.error("Failed to load state from localStorage:", err);
   }
@@ -510,6 +523,67 @@ function renderSidebar() {
     card.addEventListener("click", () => selectUser(user.id));
     list.appendChild(card);
   }
+
+  // ── Group Slots section ──
+  let groupSection = document.getElementById("group-slots-section");
+  if (!groupSection) {
+    groupSection = document.createElement("div");
+    groupSection.id = "group-slots-section";
+    list.parentElement.insertBefore(groupSection, document.getElementById("add-user-btn"));
+  }
+  groupSection.innerHTML = "";
+
+  if (state.groupSlots.length > 0 || state.users.length >= 2) {
+    const divider = document.createElement("div");
+    divider.className = "section-divider";
+    groupSection.appendChild(divider);
+
+    const title = document.createElement("div");
+    title.className = "group-slots-title";
+    title.textContent = t("groupSlots");
+    groupSection.appendChild(title);
+
+    for (let gi = 0; gi < state.groupSlots.length; gi++) {
+      const g = state.groupSlots[gi];
+      const memberNames = g.memberIds
+        .map((id) => {
+          const u = state.users.find((u) => u.id === id);
+          return u ? u.name : "?";
+        })
+        .join(" + ");
+
+      const row = document.createElement("div");
+      row.className = "group-slot-item";
+
+      const label = document.createElement("span");
+      label.className = "group-slot-label";
+      label.textContent = `${t("groupClass")}: ${memberNames} (${g.duration} min)`;
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "slot-remove-btn";
+      removeBtn.textContent = "\u00D7";
+      removeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        state.groupSlots.splice(gi, 1);
+        renderSidebar();
+        persistState();
+      });
+
+      row.append(label, removeBtn);
+      groupSection.appendChild(row);
+    }
+
+    if (state.users.length >= 2) {
+      const addBtn = document.createElement("button");
+      addBtn.className = "btn btn-small";
+      addBtn.textContent = t("addGroupSlot");
+      addBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openGroupSlotDialog();
+      });
+      groupSection.appendChild(addBtn);
+    }
+  }
 }
 
 /* ──────────────────────────────────────────────
@@ -533,9 +607,17 @@ function selectUser(userId) {
 function deleteUser(userId) {
   state.users = state.users.filter((u) => u.id !== userId);
   if (state.selectedUser === userId) state.selectedUser = null;
+
+  // Remove group slots that include this user (need at least 2 members)
+  state.groupSlots = state.groupSlots.filter((g) => {
+    const remaining = g.memberIds.filter((id) => id !== userId);
+    if (remaining.length < 2) return false;
+    g.memberIds = remaining;
+    return true;
+  });
+
   refreshCalendarEvents();
   renderSidebar();
-
   persistState();
 }
 
@@ -553,6 +635,7 @@ function openNewUserDialog() {
   document.getElementById("dialog-name").value = "";
   document.getElementById("dialog-name").parentElement.style.display = "";
   document.getElementById("dialog-slots").style.display = "";
+  document.getElementById("dialog-group-fields").style.display = "none";
   document.getElementById("dialog-slot-list").innerHTML = "";
   document.getElementById("dialog-confirm").textContent = t("create");
   addDialogSlot();
@@ -565,6 +648,7 @@ function openAddSlotDialog(userId) {
   document.getElementById("dialog-title").textContent = t("addSlotTitle");
   document.getElementById("dialog-name").parentElement.style.display = "none";
   document.getElementById("dialog-slots").style.display = "";
+  document.getElementById("dialog-group-fields").style.display = "none";
   document.getElementById("dialog-slot-list").innerHTML = "";
   document.getElementById("dialog-confirm").textContent = t("add");
   addDialogSlot();
@@ -573,6 +657,7 @@ function openAddSlotDialog(userId) {
 
 function closeDialog() {
   document.getElementById("dialog-overlay").classList.add("hidden");
+  document.getElementById("dialog-group-fields").style.display = "none";
 }
 
 function addDialogSlot() {
@@ -598,7 +683,77 @@ function addDialogSlot() {
   list.appendChild(row);
 }
 
+function openGroupSlotDialog() {
+  dialogMode = "new-group-slot";
+  dialogTargetUserId = null;
+  document.getElementById("dialog-title").textContent = t("newGroupSlot");
+  document.getElementById("dialog-name").parentElement.style.display = "none";
+  document.getElementById("dialog-slots").style.display = "none";
+
+  // Show group fields
+  const groupFields = document.getElementById("dialog-group-fields");
+  groupFields.style.display = "";
+
+  // Participants label
+  document.getElementById("dialog-participants-label").textContent = t("selectParticipants");
+
+  // Build participant checkboxes
+  const partList = document.getElementById("dialog-participants-list");
+  partList.innerHTML = "";
+  for (const user of state.users) {
+    const label = document.createElement("label");
+    label.className = "participant-checkbox";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.value = user.id;
+    const dot = document.createElement("span");
+    dot.className = "user-color-dot";
+    dot.style.background = user.color;
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = user.name;
+    label.append(cb, dot, nameSpan);
+    partList.appendChild(label);
+  }
+
+  // Duration selector
+  document.getElementById("dialog-duration-label").textContent = t("duration");
+  const durSel = document.getElementById("dialog-group-duration");
+  durSel.innerHTML = "";
+  [30, 45, 60, 75, 90].forEach((d) => {
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.textContent = d + " min";
+    durSel.appendChild(opt);
+  });
+
+  document.getElementById("dialog-confirm").textContent = t("create");
+  document.getElementById("dialog-overlay").classList.remove("hidden");
+}
+
 function confirmDialog() {
+  if (dialogMode === "new-group-slot") {
+    const checked = Array.from(
+      document.querySelectorAll("#dialog-participants-list input:checked")
+    ).map((cb) => cb.value);
+
+    if (checked.length < 2) return alert(t("minTwoParticipants"));
+
+    const duration = parseInt(document.getElementById("dialog-group-duration").value);
+
+    state.groupSlots.push({
+      id: "group_" + Date.now(),
+      duration,
+      memberIds: checked,
+    });
+
+    // Hide group fields
+    document.getElementById("dialog-group-fields").style.display = "none";
+    closeDialog();
+    renderSidebar();
+    persistState();
+    return;
+  }
+
   if (dialogMode === "new-user") {
     const name = document.getElementById("dialog-name").value.trim();
     if (!name) return alert(t("enterName"));
@@ -640,23 +795,89 @@ function confirmDialog() {
    Scheduling — call backend
    ────────────────────────────────────────────── */
 
+/** Compute intersection of availability arrays. Each array has {day, start, end}. */
+function intersectAvailability(availArrays) {
+  if (availArrays.length === 0) return [];
+  let result = availArrays[0].map((a) => ({
+    day: a.day,
+    startMin: timeToMinutes(a.start),
+    endMin: timeToMinutes(a.end),
+  }));
+
+  for (let i = 1; i < availArrays.length; i++) {
+    const other = availArrays[i].map((a) => ({
+      day: a.day,
+      startMin: timeToMinutes(a.start),
+      endMin: timeToMinutes(a.end),
+    }));
+    const newResult = [];
+    for (const r of result) {
+      for (const o of other) {
+        if (r.day !== o.day) continue;
+        const start = Math.max(r.startMin, o.startMin);
+        const end = Math.min(r.endMin, o.endMin);
+        if (start < end) {
+          newResult.push({ day: r.day, startMin: start, endMin: end });
+        }
+      }
+    }
+    result = newResult;
+  }
+
+  return result.map((r) => ({
+    day: r.day,
+    start: minutesToTime(r.startMin),
+    end: minutesToTime(r.endMin),
+  }));
+}
+
 async function runScheduling() {
+  // Build regular users payload
+  const usersPayload = state.users.map((u) => ({
+    name: u.name,
+    color: u.color,
+    slots: u.slots.map((s) => s.duration),
+    availability: u.availability.map((a) => ({
+      day: DAY_MAP[a.day],
+      start: a.start,
+      end: a.end,
+    })),
+  }));
+
+  // Build virtual users for group slots
+  for (const g of state.groupSlots) {
+    const members = g.memberIds
+      .map((id) => state.users.find((u) => u.id === id))
+      .filter(Boolean);
+    if (members.length < 2) continue;
+
+    const memberNames = members.map((m) => m.name);
+    const groupName = t("groupClass") + ": " + memberNames.join(" + ");
+
+    // Intersect availability of all members
+    const memberAvails = members.map((m) => m.availability);
+    const intersection = intersectAvailability(memberAvails);
+
+    usersPayload.push({
+      name: groupName,
+      color: "#6366f1",
+      slots: [g.duration],
+      availability: intersection.map((a) => ({
+        day: DAY_MAP[a.day],
+        start: a.start,
+        end: a.end,
+      })),
+      member_names: memberNames,
+    });
+  }
+
   const payload = {
     pt_availability: state.ptAvailability.map((a) => ({
       day: DAY_MAP[a.day],
       start: a.start,
       end: a.end,
     })),
-    users: state.users.map((u) => ({
-      name: u.name,
-      color: u.color,
-      slots: u.slots.map((s) => s.duration),
-      availability: u.availability.map((a) => ({
-        day: DAY_MAP[a.day],
-        start: a.start,
-        end: a.end,
-      })),
-    })),
+    users: usersPayload,
   };
 
   const btn = document.getElementById("schedule-btn");
@@ -680,6 +901,18 @@ async function runScheduling() {
         start: a.start,
         end: a.end,
       }));
+    }
+    // Add group virtual users' colors and availability
+    for (const g of state.groupSlots) {
+      const members = g.memberIds
+        .map((id) => state.users.find((u) => u.id === id))
+        .filter(Boolean);
+      if (members.length < 2) continue;
+      const memberNames = members.map((m) => m.name);
+      const groupName = t("groupClass") + ": " + memberNames.join(" + ");
+      userColors[groupName] = "#6366f1";
+      const intersection = intersectAvailability(members.map((m) => m.availability));
+      userAvailability[groupName] = intersection;
     }
     result.user_colors = userColors;
     result.user_availability = userAvailability;

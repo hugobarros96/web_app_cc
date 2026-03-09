@@ -296,3 +296,99 @@ class TestRegenerateExcludedSolutions:
 
         # No valid placement left — should schedule 0
         assert result2.total_scheduled == 0
+
+
+class TestGroupSlots:
+    def test_group_slot_basic(self):
+        """A group user gets scheduled when there's enough room for everyone."""
+        pt = make_pt(
+            (Day.MONDAY, "08:00", "18:00"),
+            (Day.TUESDAY, "08:00", "18:00"),
+            (Day.WEDNESDAY, "08:00", "18:00"),
+        )
+        # Alice: available Mon+Tue
+        alice = make_user(
+            "Alice",
+            [(Day.MONDAY, "08:00", "18:00"), (Day.TUESDAY, "08:00", "18:00")],
+            [60],
+        )
+        # Bob: available Mon+Tue
+        bob = make_user(
+            "Bob",
+            [(Day.MONDAY, "08:00", "18:00"), (Day.TUESDAY, "08:00", "18:00")],
+            [60],
+        )
+        # Group: available Wed only — no day conflict possible
+        group = User(name="Group: Alice + Bob", member_names=["Alice", "Bob"])
+        group.add_availability(Day.WEDNESDAY, "08:00", "18:00")
+        group.add_slot_request(60)
+
+        pt.add_user(alice)
+        pt.add_user(bob)
+        pt.add_user(group)
+
+        result = solve(pt)
+        assert result.status == "OPTIMAL"
+        assert result.total_scheduled == 3
+
+        group_assignments = [a for a in result.assignments if a.user_name == "Group: Alice + Bob"]
+        assert len(group_assignments) == 1
+        assert group_assignments[0].day == Day.WEDNESDAY
+
+    def test_group_cross_day_constraint_prefers_more_slots(self):
+        """Solver prefers 2 individual slots over 1 group slot when
+        all are on the same day (maximise total scheduled)."""
+        pt = make_pt((Day.MONDAY, "08:00", "18:00"))
+        alice = make_user("Alice", [(Day.MONDAY, "08:00", "18:00")], [60])
+        bob = make_user("Bob", [(Day.MONDAY, "08:00", "18:00")], [60])
+        group = User(name="Group: Alice + Bob", member_names=["Alice", "Bob"])
+        group.add_availability(Day.MONDAY, "08:00", "18:00")
+        group.add_slot_request(60)
+
+        pt.add_user(alice)
+        pt.add_user(bob)
+        pt.add_user(group)
+
+        result = solve(pt)
+        # Optimizer maximises: 2 individual > 1 group, so group is unscheduled
+        assert result.total_scheduled == 2
+        assert any(u.user_name == "Group: Alice + Bob" for u in result.unscheduled)
+
+    def test_group_cross_day_constraint_enforced(self):
+        """Group on a day prevents its members from being on that same day."""
+        pt = make_pt(
+            (Day.MONDAY, "08:00", "18:00"),
+            (Day.TUESDAY, "08:00", "18:00"),
+            (Day.WEDNESDAY, "08:00", "18:00"),
+        )
+        alice = make_user(
+            "Alice",
+            [(Day.MONDAY, "08:00", "18:00"), (Day.TUESDAY, "08:00", "18:00"),
+             (Day.WEDNESDAY, "08:00", "18:00")],
+            [60],
+        )
+        bob = make_user(
+            "Bob",
+            [(Day.MONDAY, "08:00", "18:00"), (Day.TUESDAY, "08:00", "18:00"),
+             (Day.WEDNESDAY, "08:00", "18:00")],
+            [60],
+        )
+        group = User(name="Group: Alice + Bob", member_names=["Alice", "Bob"])
+        group.add_availability(Day.MONDAY, "08:00", "18:00")
+        group.add_availability(Day.TUESDAY, "08:00", "18:00")
+        group.add_availability(Day.WEDNESDAY, "08:00", "18:00")
+        group.add_slot_request(60)
+
+        pt.add_user(alice)
+        pt.add_user(bob)
+        pt.add_user(group)
+
+        result = solve(pt)
+        assert result.status == "OPTIMAL"
+        assert result.total_scheduled == 3
+
+        # The group slot must not share a day with Alice or Bob
+        group_a = [a for a in result.assignments if a.user_name == "Group: Alice + Bob"][0]
+        member_days = {a.day for a in result.assignments if a.user_name in ("Alice", "Bob")}
+        assert group_a.day not in member_days, \
+            "Group slot should not be on the same day as any member"

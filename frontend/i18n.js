@@ -21,9 +21,16 @@ const I18N = {
     deleteUser: "Delete user",
     removeSlot: "Remove slot",
     addSlot: "+ Add Slot",
+    addGroupSlot: "+ Add Group Slot",
+    groupSlots: "Group Slots",
 
     // Dialog
     newUser: "New User",
+    newGroupSlot: "New Group Slot",
+    selectParticipants: "Participants",
+    minTwoParticipants: "Select at least 2 participants",
+    duration: "Duration",
+    groupClass: "Group",
     addSlotTitle: "Add Slot",
     slotsLabel: "Slots",
     name: "Name",
@@ -78,9 +85,16 @@ const I18N = {
     deleteUser: "Eliminar utilizador",
     removeSlot: "Remover sessão",
     addSlot: "+ Adicionar Sessão",
+    addGroupSlot: "+ Adicionar Sessão de Grupo",
+    groupSlots: "Sessões de Grupo",
 
     // Dialog
     newUser: "Novo Utilizador",
+    newGroupSlot: "Nova Sessão de Grupo",
+    selectParticipants: "Participantes",
+    minTwoParticipants: "Selecione pelo menos 2 participantes",
+    duration: "Duração",
+    groupClass: "Grupo",
     addSlotTitle: "Adicionar Sessão",
     slotsLabel: "Sessões",
     name: "Nome",
