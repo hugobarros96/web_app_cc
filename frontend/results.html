@@ -291,6 +291,7 @@
     // Sidebar toggle
     document.getElementById("sidebar-toggle").addEventListener("click", () => {
       document.getElementById("results-sidebar").classList.toggle("open");
+      setTimeout(() => { if (calendar) calendar.updateSize(); }, 300);
     });
 
     const PT_COLOR = "rgba(99,102,241,0.25)";
@@ -423,6 +424,7 @@
         allDaySlot: false,
         editable: true,
         selectable: false,
+        longPressDelay: 500,
         eventOverlap: true,
         slotEventOverlap: true,
         eventOrder: "order",
