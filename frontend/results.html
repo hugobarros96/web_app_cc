@@ -19,14 +19,51 @@
     }
 
     #results-sidebar {
-      width: 340px;
-      min-width: 340px;
       background: #fff;
       border-right: 1px solid #e0e0e0;
-      padding: 20px 16px;
+      padding: 12px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
+      width: 48px;
+      min-width: 48px;
+      overflow: hidden;
+      transition: width 0.25s ease, min-width 0.25s ease, padding 0.25s ease;
+    }
+
+    #results-sidebar.open {
+      width: 340px;
+      min-width: 340px;
+      padding: 20px 16px;
+    }
+
+    #results-sidebar > *:not(.sidebar-toggle) {
+      opacity: 0;
+      white-space: nowrap;
+      transition: opacity 0.15s ease;
+      pointer-events: none;
+    }
+
+    #results-sidebar.open > *:not(.sidebar-toggle) {
+      opacity: 1;
+      pointer-events: auto;
+      transition: opacity 0.2s ease 0.1s;
+    }
+
+    .sidebar-toggle {
+      background: none;
+      border: none;
+      font-size: 20px;
+      padding: 6px 8px;
+      cursor: pointer;
+      color: #374151;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      align-self: flex-start;
+    }
+
+    .sidebar-toggle:hover {
+      background: #f3f4f6;
     }
 
     #results-sidebar h2 {
@@ -81,6 +118,21 @@
     }
     .copy-btn:hover { background: #e5e7eb; }
 
+    .btn-regenerate {
+      margin-top: 8px;
+      width: 100%;
+      padding: 10px;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .btn-regenerate:hover { background: #4f46e5; }
+    .btn-regenerate:disabled { background: #a5b4fc; cursor: not-allowed; }
+
     #results-calendar-container {
       flex: 1;
       padding: 16px;
@@ -102,12 +154,14 @@
   </style>
 </head>
 <body>
-  <div id="results-sidebar">
+  <div id="results-sidebar" class="open">
+    <button id="sidebar-toggle" class="sidebar-toggle" title="Toggle menu">&#9776;</button>
     <h2>Scheduling Results</h2>
     <span id="status-badge" class="status-badge"></span>
     <div id="results-summary" class="results-summary"></div>
     <div id="results-text" class="results-text"></div>
     <button id="copy-btn" class="copy-btn">Copy to clipboard</button>
+    <button id="regenerate-btn" class="btn-regenerate">Generate New Result</button>
   </div>
   <div id="results-calendar-container">
     <div id="results-calendar"></div>
@@ -115,7 +169,13 @@
 
   <script>
     // Read results from sessionStorage (set by main app before opening this tab)
-    const data = JSON.parse(sessionStorage.getItem("schedulingResults") || "null");
+    // Sidebar toggle
+    document.getElementById("sidebar-toggle").addEventListener("click", () => {
+      document.getElementById("results-sidebar").classList.toggle("open");
+    });
+
+    let data = JSON.parse(sessionStorage.getItem("schedulingResults") || "null");
+    let calendar;
 
     if (!data) {
       document.getElementById("results-text").textContent = "No results found. Run scheduling from the main app first.";
@@ -150,7 +210,7 @@
 
       // Calendar
       const calendarEl = document.getElementById("results-calendar");
-      const calendar = new FullCalendar.Calendar(calendarEl, {
+      calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: "timeGridWeek",
         firstDay: 1,
         slotMinTime: "07:00:00",
@@ -169,6 +229,73 @@
       });
       calendar.render();
     }
+
+    function updateDisplay(data) {
+      const badge = document.getElementById("status-badge");
+      badge.textContent = data.status;
+      badge.className = "status-badge";
+      badge.classList.add(
+        data.status === "OPTIMAL" ? "optimal" :
+        data.status === "FEASIBLE" ? "feasible" : "error"
+      );
+      document.getElementById("results-summary").textContent =
+        `${data.total_scheduled} of ${data.total_requested} slots scheduled`;
+      const lines = data.assignments.map(
+        (a) => `${a.user_name.padEnd(12)} ${a.day.padEnd(10)} ${a.start_time}-${a.end_time}  (${a.duration_min}min)`
+      );
+      document.getElementById("results-text").textContent = lines.join("\n");
+      if (calendar) {
+        calendar.removeAllEvents();
+        buildEvents(data).forEach((e) => calendar.addEvent(e));
+      }
+    }
+
+    // Track all previously seen solutions to exclude them
+    const excludedSolutions = [];
+
+    // Regenerate button
+    document.getElementById("regenerate-btn").addEventListener("click", async () => {
+      const payload = JSON.parse(sessionStorage.getItem("schedulingPayload") || "null");
+      if (!payload) {
+        alert("No scheduling data found. Run scheduling from the main app first.");
+        return;
+      }
+      // Add current assignments to excluded list
+      if (data && data.assignments && data.assignments.length > 0) {
+        excludedSolutions.push(
+          data.assignments.map((a) => ({
+            user_name: a.user_name,
+            slot_idx: a.slot_idx,
+            start_block: a.start_block,
+          }))
+        );
+      }
+      payload.excluded_solutions = excludedSolutions;
+
+      const btn = document.getElementById("regenerate-btn");
+      btn.textContent = "Generating...";
+      btn.disabled = true;
+      try {
+        const resp = await fetch("/scheduler/api/solve", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const result = await resp.json();
+        // Preserve user colors from previous result
+        if (data && data.user_colors) {
+          result.user_colors = data.user_colors;
+        }
+        data = result;
+        sessionStorage.setItem("schedulingResults", JSON.stringify(result));
+        updateDisplay(result);
+      } catch (err) {
+        alert("Error: " + err.message);
+      } finally {
+        btn.textContent = "Generate New Result";
+        btn.disabled = false;
+      }
+    });
 
     function buildEvents(data) {
       const dayMap = {

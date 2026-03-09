@@ -86,6 +86,7 @@ class Assignment:
     """A single scheduled session in the solution."""
 
     user_name: str
+    slot_idx: int
     day: Day
     start_time: str  # "HH:MM"
     end_time: str  # "HH:MM"
@@ -103,7 +104,8 @@ class ScheduleResult:
     status: str  # "OPTIMAL", "FEASIBLE", "INFEASIBLE", "ERROR"
 
 
-def solve(scheduler: Scheduler, time_limit_seconds: float = 100.0) -> ScheduleResult:
+def solve(scheduler: Scheduler, time_limit_seconds: float = 100.0,
+          excluded_solutions: Optional[List[List[Tuple[str, int, int]]]] = None) -> ScheduleResult:
     """Run the CP-SAT optimiser and return the schedule.
 
     Args:
@@ -185,6 +187,25 @@ def solve(scheduler: Scheduler, time_limit_seconds: float = 100.0) -> ScheduleRe
     # Objective: maximise number of scheduled slots
     model.maximize(sum(scheduled_indicators))
 
+    # Exclude previous solutions: for each excluded solution, at least one
+    # assignment must differ (a "no-good" cut).
+    if excluded_solutions:
+        # Build lookup: (user_name, slot_idx) -> {start_block: var}
+        var_lookup: Dict[Tuple[str, int], Dict[int, cp_model.IntVar]] = {}
+        for user, s_idx, slot_req, start_vars in slot_vars:
+            var_lookup[(user.name, s_idx)] = {b: v for b, v in start_vars}
+
+        for prev_assignments in excluded_solutions:
+            # prev_assignments is a list of (user_name, slot_idx, start_block)
+            prev_vars = []
+            for uname, s_idx, start_b in prev_assignments:
+                key = (uname, s_idx)
+                if key in var_lookup and start_b in var_lookup[key]:
+                    prev_vars.append(var_lookup[key][start_b])
+            if prev_vars:
+                # At least one of these must NOT be selected
+                model.add(sum(prev_vars) <= len(prev_vars) - 1)
+
     # Solve
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = time_limit_seconds
@@ -211,6 +232,7 @@ def solve(scheduler: Scheduler, time_limit_seconds: float = 100.0) -> ScheduleRe
                 assignments.append(
                     Assignment(
                         user_name=user.name,
+                        slot_idx=s_idx,
                         day=day,
                         start_time=minutes_to_hhmm(start_min),
                         end_time=minutes_to_hhmm(end_min),

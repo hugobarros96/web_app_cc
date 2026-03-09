@@ -187,3 +187,112 @@ class TestEdgeCases:
 
         result = solve(pt)
         assert result.total_scheduled == 0
+
+
+class TestRegenerateExcludedSolutions:
+    def _make_scenario_with_multiple_solutions(self):
+        """Create a scenario where multiple optimal solutions exist.
+        PT available Mon+Tue 08-18. Alice has a 60min slot and is
+        available both days — so the solver can place her on either day.
+        """
+        pt = make_pt(
+            (Day.MONDAY, "08:00", "18:00"),
+            (Day.TUESDAY, "08:00", "18:00"),
+        )
+        u = make_user(
+            "Alice",
+            [(Day.MONDAY, "08:00", "18:00"), (Day.TUESDAY, "08:00", "18:00")],
+            [60],
+        )
+        pt.add_user(u)
+        return pt
+
+    def test_regenerate_produces_different_result(self):
+        """Excluding the first solution should produce a different one."""
+        pt = self._make_scenario_with_multiple_solutions()
+        result1 = solve(pt)
+        assert result1.status == "OPTIMAL"
+        assert result1.total_scheduled == 1
+
+        # Build excluded solution from first result
+        excluded = [
+            [(a.user_name, a.slot_idx, a.start_block) for a in result1.assignments]
+        ]
+
+        pt2 = self._make_scenario_with_multiple_solutions()
+        result2 = solve(pt2, excluded_solutions=excluded)
+        assert result2.status == "OPTIMAL"
+        assert result2.total_scheduled == 1
+
+        # The assignment must differ (different day or different start block)
+        a1 = result1.assignments[0]
+        a2 = result2.assignments[0]
+        assert (a1.day, a1.start_block) != (a2.day, a2.start_block), \
+            "Regenerated result should differ from the excluded one"
+
+    def test_regenerate_multiple_exclusions(self):
+        """Excluding multiple solutions should keep producing new ones."""
+        pt = make_pt(
+            (Day.MONDAY, "08:00", "12:00"),
+            (Day.TUESDAY, "08:00", "12:00"),
+        )
+        # User with 60min slot available on both days, wide window
+        u = make_user(
+            "Bob",
+            [(Day.MONDAY, "08:00", "12:00"), (Day.TUESDAY, "08:00", "12:00")],
+            [60],
+        )
+        pt.add_user(u)
+
+        seen_blocks = set()
+        excluded = []
+
+        result = solve(pt)
+        assert result.total_scheduled == 1
+        seen_blocks.add(result.assignments[0].start_block)
+
+        # Generate a few more solutions, each excluding all previous ones
+        for _ in range(3):
+            excluded.append(
+                [(a.user_name, a.slot_idx, a.start_block) for a in result.assignments]
+            )
+            pt_new = make_pt(
+                (Day.MONDAY, "08:00", "12:00"),
+                (Day.TUESDAY, "08:00", "12:00"),
+            )
+            u_new = make_user(
+                "Bob",
+                [(Day.MONDAY, "08:00", "12:00"), (Day.TUESDAY, "08:00", "12:00")],
+                [60],
+            )
+            pt_new.add_user(u_new)
+            result = solve(pt_new, excluded_solutions=excluded)
+            assert result.total_scheduled == 1
+            seen_blocks.add(result.assignments[0].start_block)
+
+        # We should have at least 4 distinct placements
+        assert len(seen_blocks) >= 4, \
+            f"Expected at least 4 distinct placements, got {len(seen_blocks)}"
+
+    def test_regenerate_exhausted_returns_different_status_or_fewer(self):
+        """When all solutions are excluded, solver should return fewer scheduled."""
+        # Tight scenario: PT and user only overlap for exactly 60min
+        pt = make_pt((Day.MONDAY, "10:00", "11:00"))
+        u = make_user("Alice", [(Day.MONDAY, "10:00", "11:00")], [60])
+        pt.add_user(u)
+
+        result1 = solve(pt)
+        assert result1.total_scheduled == 1
+
+        # Exclude the only possible solution
+        excluded = [
+            [(a.user_name, a.slot_idx, a.start_block) for a in result1.assignments]
+        ]
+
+        pt2 = make_pt((Day.MONDAY, "10:00", "11:00"))
+        u2 = make_user("Alice", [(Day.MONDAY, "10:00", "11:00")], [60])
+        pt2.add_user(u2)
+        result2 = solve(pt2, excluded_solutions=excluded)
+
+        # No valid placement left — should schedule 0
+        assert result2.total_scheduled == 0

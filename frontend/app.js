@@ -658,6 +658,7 @@ async function runScheduling() {
     result.user_colors = userColors;
 
     sessionStorage.setItem("schedulingResults", JSON.stringify(result));
+    sessionStorage.setItem("schedulingPayload", JSON.stringify(payload));
     window.open("/scheduler/results", "_blank");
   } catch (err) {
     alert("Error: " + err.message);
