@@ -185,6 +185,7 @@ document.addEventListener("DOMContentLoaded", function () {
     slotLabelInterval: "01:00:00",
     selectable: true,
     selectMirror: true,
+    selectLongPressDelay: 500,
     allDaySlot: false,
     editable: false,
     headerToolbar: {
