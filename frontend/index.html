@@ -10,18 +10,19 @@
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.js"></script>
 
   <link rel="stylesheet" href="/scheduler/static/style.css" />
+  <script src="/scheduler/static/i18n.js"></script>
 </head>
 <body>
   <div id="app">
     <aside id="sidebar">
-      <button id="sidebar-toggle" class="sidebar-toggle" title="Toggle menu">&#9776;</button>
-      <h2>Scheduling App</h2>
+      <button id="sidebar-toggle" class="sidebar-toggle" title="">&#9776;</button>
+      <h2 id="app-title"></h2>
 
       <!-- PT / Scheduler section -->
       <div id="pt-section" class="user-card pt-card selected" data-user="__PT__">
         <div class="user-header">
           <span class="user-color-dot" style="background: rgba(99,102,241,0.5)"></span>
-          <span class="user-name">Scheduler Availability</span>
+          <span class="user-name" id="pt-name"></span>
         </div>
       </div>
 
@@ -31,37 +32,37 @@
       <div id="user-list"></div>
 
       <!-- Add user button -->
-      <button id="add-user-btn" class="btn btn-add" title="Add new user">+ Add User</button>
+      <button id="add-user-btn" class="btn btn-add" title=""></button>
 
       <div class="sidebar-spacer"></div>
 
       <!-- Start Scheduling button -->
-      <button id="schedule-btn" class="btn btn-schedule">Start Scheduling</button>
+      <button id="schedule-btn" class="btn btn-schedule"></button>
     </aside>
 
     <main id="calendar-container">
       <div id="calendar"></div>
-      <footer class="app-footer">&copy; 2026 Developed by Hugo Barros</footer>
+      <footer class="app-footer" id="app-footer"></footer>
     </main>
   </div>
 
   <!-- New User Dialog -->
   <div id="dialog-overlay" class="dialog-overlay hidden">
     <div class="dialog">
-      <h3 id="dialog-title">New User</h3>
+      <h3 id="dialog-title"></h3>
       <div class="dialog-body">
-        <label>Name
-          <input type="text" id="dialog-name" placeholder="User name" />
+        <label id="dialog-name-label"><span id="dialog-name-text"></span>
+          <input type="text" id="dialog-name" />
         </label>
         <div id="dialog-slots">
-          <label>Slots</label>
+          <label id="dialog-slots-label"></label>
           <div id="dialog-slot-list"></div>
-          <button id="dialog-add-slot" class="btn btn-small">+ Add Slot</button>
+          <button id="dialog-add-slot" class="btn btn-small"></button>
         </div>
       </div>
       <div class="dialog-actions">
-        <button id="dialog-cancel" class="btn btn-cancel">Cancel</button>
-        <button id="dialog-confirm" class="btn btn-confirm">Create</button>
+        <button id="dialog-cancel" class="btn btn-cancel"></button>
+        <button id="dialog-confirm" class="btn btn-confirm"></button>
       </div>
     </div>
   </div>

@@ -238,10 +238,12 @@ body {
 #calendar-container {
   padding: 16px;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 #calendar {
-  height: 100%;
+  flex: 1;
   background: #fff;
   border-radius: 8px;
   padding: 12px;
@@ -414,6 +416,42 @@ body {
 
 #calendar-container {
   flex: 1;
+}
+
+/* ── Language toggle ── */
+.lang-toggle {
+  display: flex;
+  gap: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  align-self: flex-end;
+  flex-shrink: 0;
+}
+
+.lang-btn {
+  padding: 4px 10px;
+  border: none;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  transition: background 0.15s, color 0.15s;
+}
+
+.lang-btn:not(:last-child) {
+  border-right: 1px solid #d1d5db;
+}
+
+.lang-btn.active {
+  background: #6366f1;
+  color: #fff;
+}
+
+.lang-btn:hover:not(.active) {
+  background: #f3f4f6;
 }
 
 /* ── Footer ── */

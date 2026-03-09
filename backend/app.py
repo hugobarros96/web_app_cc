@@ -47,8 +47,14 @@ class AssignmentOut(BaseModel):
     duration_min: int
     start_block: int
 
+class UnscheduledOut(BaseModel):
+    user_name: str
+    slot_idx: int
+    duration_min: int
+
 class SolveResponse(BaseModel):
     assignments: List[AssignmentOut]
+    unscheduled: List[UnscheduledOut]
     total_requested: int
     total_scheduled: int
     status: str
@@ -91,6 +97,14 @@ async def api_solve(req: SolveRequest):
                 start_block=a.start_block,
             )
             for a in result.assignments
+        ],
+        unscheduled=[
+            UnscheduledOut(
+                user_name=u.user_name,
+                slot_idx=u.slot_idx,
+                duration_min=u.duration_min,
+            )
+            for u in result.unscheduled
         ],
         total_requested=result.total_requested,
         total_scheduled=result.total_scheduled,

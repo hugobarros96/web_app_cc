@@ -7,6 +7,7 @@
 
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.17/index.global.min.js"></script>
+  <script src="/scheduler/static/i18n.js"></script>
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -37,17 +38,31 @@
       padding: 20px 16px;
     }
 
-    #results-sidebar > *:not(.sidebar-toggle) {
+    #results-sidebar > *:not(.sidebar-toggle):not(.results-text) {
       opacity: 0;
       white-space: nowrap;
       transition: opacity 0.15s ease;
       pointer-events: none;
     }
 
-    #results-sidebar.open > *:not(.sidebar-toggle) {
+    #results-sidebar > .results-text {
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      pointer-events: none;
+    }
+
+    #results-sidebar.open > *:not(.sidebar-toggle):not(.results-text) {
       opacity: 1;
       pointer-events: auto;
       transition: opacity 0.2s ease 0.1s;
+      white-space: normal;
+    }
+
+    #results-sidebar.open > .results-text {
+      opacity: 1;
+      pointer-events: auto;
+      transition: opacity 0.2s ease 0.1s;
+      white-space: pre-wrap;
     }
 
     .sidebar-toggle {
@@ -105,6 +120,11 @@
       user-select: all;
     }
 
+    .results-warning {
+      color: #dc2626;
+      font-weight: 700;
+    }
+
     .copy-btn {
       margin-top: 8px;
       width: 100%;
@@ -137,10 +157,12 @@
       flex: 1;
       padding: 16px;
       overflow: auto;
+      display: flex;
+      flex-direction: column;
     }
 
     #results-calendar {
-      height: 100%;
+      flex: 1;
       background: #fff;
       border-radius: 8px;
       padding: 12px;
@@ -151,24 +173,64 @@
     .fc .fc-toolbar-title { font-size: 16px; }
     .fc .fc-col-header-cell { background: #fafafa; font-size: 13px; font-weight: 500; }
     .fc .fc-timegrid-slot { height: 28px; }
+
+    .app-footer {
+      text-align: center;
+      font-size: 12px;
+      color: #9ca3af;
+      margin: 2em 0;
+    }
+
+    .lang-toggle {
+      display: flex;
+      gap: 0;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #d1d5db;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      align-self: flex-end;
+      flex-shrink: 0;
+    }
+    .lang-btn {
+      padding: 4px 10px;
+      border: none;
+      background: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      transition: background 0.15s, color 0.15s;
+    }
+    .lang-btn:not(:last-child) { border-right: 1px solid #d1d5db; }
+    .lang-btn.active { background: #6366f1; color: #fff; }
+    .lang-btn:hover:not(.active) { background: #f3f4f6; }
   </style>
 </head>
 <body>
   <div id="results-sidebar" class="open">
     <button id="sidebar-toggle" class="sidebar-toggle" title="Toggle menu">&#9776;</button>
-    <h2>Scheduling Results</h2>
+    <h2 id="results-title"></h2>
     <span id="status-badge" class="status-badge"></span>
     <div id="results-summary" class="results-summary"></div>
     <div id="results-text" class="results-text"></div>
-    <button id="copy-btn" class="copy-btn">Copy to clipboard</button>
-    <button id="regenerate-btn" class="btn-regenerate">Generate New Result</button>
+    <button id="copy-btn" class="copy-btn"></button>
+    <button id="regenerate-btn" class="btn-regenerate"></button>
   </div>
   <div id="results-calendar-container">
     <div id="results-calendar"></div>
+    <footer class="app-footer" id="results-footer"></footer>
   </div>
 
   <script>
-    // Read results from sessionStorage (set by main app before opening this tab)
+    // i18n: set static text
+    document.getElementById("results-title").textContent = t("schedulingResults");
+    document.getElementById("copy-btn").textContent = t("copyToClipboard");
+    document.getElementById("regenerate-btn").textContent = t("generateNewResult");
+    document.getElementById("results-footer").innerHTML = t("footer");
+    document.title = t("schedulingResults");
+    const rcContainer = document.getElementById("results-calendar-container");
+    rcContainer.insertBefore(createLangToggle(), rcContainer.firstChild);
+
     // Sidebar toggle
     document.getElementById("sidebar-toggle").addEventListener("click", () => {
       document.getElementById("results-sidebar").classList.toggle("open");
@@ -178,7 +240,7 @@
     let calendar;
 
     if (!data) {
-      document.getElementById("results-text").textContent = "No results found. Run scheduling from the main app first.";
+      document.getElementById("results-text").textContent = t("noResults");
     } else {
       // Status badge
       const badge = document.getElementById("status-badge");
@@ -190,20 +252,17 @@
 
       // Summary
       document.getElementById("results-summary").textContent =
-        `${data.total_scheduled} of ${data.total_requested} slots scheduled`;
+        t("slotsScheduled")(data.total_scheduled, data.total_requested);
 
       // Text results (copyable)
-      const lines = data.assignments.map(
-        (a) => `${a.user_name.padEnd(12)} ${a.day.padEnd(10)} ${a.start_time}-${a.end_time}  (${a.duration_min}min)`
-      );
-      document.getElementById("results-text").textContent = lines.join("\n");
+      document.getElementById("results-text").innerHTML = formatResultsHtml(data);
 
       // Copy button
       document.getElementById("copy-btn").addEventListener("click", () => {
-        navigator.clipboard.writeText(lines.join("\n")).then(() => {
-          document.getElementById("copy-btn").textContent = "Copied!";
+        navigator.clipboard.writeText(formatResultsText(data)).then(() => {
+          document.getElementById("copy-btn").textContent = t("copied");
           setTimeout(() => {
-            document.getElementById("copy-btn").textContent = "Copy to clipboard";
+            document.getElementById("copy-btn").textContent = t("copyToClipboard");
           }, 2000);
         });
       });
@@ -239,11 +298,8 @@
         data.status === "FEASIBLE" ? "feasible" : "error"
       );
       document.getElementById("results-summary").textContent =
-        `${data.total_scheduled} of ${data.total_requested} slots scheduled`;
-      const lines = data.assignments.map(
-        (a) => `${a.user_name.padEnd(12)} ${a.day.padEnd(10)} ${a.start_time}-${a.end_time}  (${a.duration_min}min)`
-      );
-      document.getElementById("results-text").textContent = lines.join("\n");
+        t("slotsScheduled")(data.total_scheduled, data.total_requested);
+      document.getElementById("results-text").innerHTML = formatResultsHtml(data);
       if (calendar) {
         calendar.removeAllEvents();
         buildEvents(data).forEach((e) => calendar.addEvent(e));
@@ -257,7 +313,7 @@
     document.getElementById("regenerate-btn").addEventListener("click", async () => {
       const payload = JSON.parse(sessionStorage.getItem("schedulingPayload") || "null");
       if (!payload) {
-        alert("No scheduling data found. Run scheduling from the main app first.");
+        alert(t("noDataForRegenerate"));
         return;
       }
       // Add current assignments to excluded list
@@ -273,7 +329,7 @@
       payload.excluded_solutions = excludedSolutions;
 
       const btn = document.getElementById("regenerate-btn");
-      btn.textContent = "Generating...";
+      btn.textContent = t("generating");
       btn.disabled = true;
       try {
         const resp = await fetch("/scheduler/api/solve", {
@@ -292,10 +348,59 @@
       } catch (err) {
         alert("Error: " + err.message);
       } finally {
-        btn.textContent = "Generate New Result";
+        btn.textContent = t("generateNewResult");
         btn.disabled = false;
       }
     });
+
+    function formatResultsText(data) {
+      if (!data.assignments || data.assignments.length === 0) return "";
+      const byUser = {};
+      for (const a of data.assignments) {
+        if (!byUser[a.user_name]) byUser[a.user_name] = [];
+        byUser[a.user_name].push(a);
+      }
+      const sections = [];
+      for (const [name, assignments] of Object.entries(byUser)) {
+        const lines = assignments.map(
+          (a) => ` - ${t(a.day)} ${a.start_time}-${a.end_time}  (${a.duration_min}min)`
+        );
+        sections.push(`${name}:\n${lines.join("\n")}`);
+      }
+      let text = sections.join("\n\n");
+      if (data.unscheduled && data.unscheduled.length > 0) {
+        const warnings = data.unscheduled.map(
+          (u) => t("warningSlotNotScheduled")(u.user_name, u.duration_min)
+        );
+        text += "\n\n" + warnings.join("\n");
+      }
+      return text;
+    }
+
+    function formatResultsHtml(data) {
+      if (!data.assignments || data.assignments.length === 0) return "";
+      const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const byUser = {};
+      for (const a of data.assignments) {
+        if (!byUser[a.user_name]) byUser[a.user_name] = [];
+        byUser[a.user_name].push(a);
+      }
+      const sections = [];
+      for (const [name, assignments] of Object.entries(byUser)) {
+        const lines = assignments.map(
+          (a) => ` - ${esc(t(a.day))} ${a.start_time}-${a.end_time}  (${a.duration_min}min)`
+        );
+        sections.push(`${esc(name)}:\n${lines.join("\n")}`);
+      }
+      let html = sections.join("\n\n");
+      if (data.unscheduled && data.unscheduled.length > 0) {
+        const warnings = data.unscheduled.map(
+          (u) => `<span class="results-warning">${esc(t("warningSlotNotScheduled")(u.user_name, u.duration_min))}</span>`
+        );
+        html += "\n\n" + warnings.join("\n");
+      }
+      return html;
+    }
 
     function buildEvents(data) {
       const dayMap = {

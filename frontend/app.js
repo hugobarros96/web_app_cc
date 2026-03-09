@@ -198,6 +198,26 @@ document.addEventListener("DOMContentLoaded", function () {
   // Load saved state from localStorage
   loadState();
 
+  // i18n: set static text
+  document.getElementById("app-title").textContent = t("schedulingApp");
+  document.getElementById("pt-name").textContent = t("schedulerAvailability");
+  document.getElementById("add-user-btn").textContent = t("addUser");
+  document.getElementById("add-user-btn").title = t("addNewUser");
+  document.getElementById("schedule-btn").textContent = t("startScheduling");
+  document.getElementById("sidebar-toggle").title = t("toggleMenu");
+  document.getElementById("dialog-name-text").textContent = t("name");
+  document.getElementById("dialog-name").placeholder = t("userNamePlaceholder");
+  document.getElementById("dialog-slots-label").textContent = t("slotsLabel");
+  document.getElementById("dialog-add-slot").textContent = t("addSlot");
+  document.getElementById("dialog-cancel").textContent = t("cancel");
+  document.getElementById("app-footer").innerHTML = t("footer");
+  document.title = t("schedulingApp");
+
+  // Language toggle
+  const calContainer = document.getElementById("calendar-container");
+  const langToggle = createLangToggle();
+  calContainer.insertBefore(langToggle, calContainer.firstChild);
+
   // Hamburger toggle
   document.getElementById("sidebar-toggle").addEventListener("click", () => {
     document.getElementById("sidebar").classList.toggle("open");
@@ -372,7 +392,7 @@ function renderSidebar() {
       ptInfo.className = "calendar-info";
       ptCard.appendChild(ptInfo);
     }
-    ptInfo.textContent = `${state.ptAvailability.length} availability block(s)`;
+    ptInfo.textContent = t("availabilityBlocks")(state.ptAvailability.length);
   } else if (ptInfo) {
     ptInfo.remove();
   }
@@ -402,7 +422,7 @@ function renderSidebar() {
     const delBtn = document.createElement("button");
     delBtn.className = "user-delete-btn";
     delBtn.innerHTML = "&#128465;";
-    delBtn.title = "Delete user";
+    delBtn.title = t("deleteUser");
     delBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       deleteUser(user.id);
@@ -417,7 +437,7 @@ function renderSidebar() {
     // Slots
     const slotLabel = document.createElement("div");
     slotLabel.className = "slot-section-label";
-    slotLabel.textContent = `Slots (${user.slots.length})`;
+    slotLabel.textContent = t("slots")(user.slots.length);
     dropdown.appendChild(slotLabel);
 
     for (let i = 0; i < user.slots.length; i++) {
@@ -432,7 +452,7 @@ function renderSidebar() {
       const removeBtn = document.createElement("button");
       removeBtn.className = "slot-remove-btn";
       removeBtn.textContent = "\u00D7";
-      removeBtn.title = "Remove slot";
+      removeBtn.title = t("removeSlot");
       removeBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         user.slots.splice(i, 1);
@@ -447,7 +467,7 @@ function renderSidebar() {
     if (user.slots.length < 4) {
       const addSlotBtn = document.createElement("button");
       addSlotBtn.className = "btn btn-small";
-      addSlotBtn.textContent = "+ Add Slot";
+      addSlotBtn.textContent = t("addSlot");
       addSlotBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         openAddSlotDialog(user.id);
@@ -459,7 +479,7 @@ function renderSidebar() {
     if (user.availability.length > 0) {
       const availLabel = document.createElement("div");
       availLabel.className = "avail-section-label";
-      availLabel.textContent = "Availability";
+      availLabel.textContent = t("availability");
       dropdown.appendChild(availLabel);
 
       for (let i = 0; i < user.availability.length; i++) {
@@ -529,12 +549,12 @@ let dialogTargetUserId = null;
 function openNewUserDialog() {
   dialogMode = "new-user";
   dialogTargetUserId = null;
-  document.getElementById("dialog-title").textContent = "New User";
+  document.getElementById("dialog-title").textContent = t("newUser");
   document.getElementById("dialog-name").value = "";
   document.getElementById("dialog-name").parentElement.style.display = "";
   document.getElementById("dialog-slots").style.display = "";
   document.getElementById("dialog-slot-list").innerHTML = "";
-  document.getElementById("dialog-confirm").textContent = "Create";
+  document.getElementById("dialog-confirm").textContent = t("create");
   addDialogSlot();
   document.getElementById("dialog-overlay").classList.remove("hidden");
 }
@@ -542,11 +562,11 @@ function openNewUserDialog() {
 function openAddSlotDialog(userId) {
   dialogMode = "add-slot";
   dialogTargetUserId = userId;
-  document.getElementById("dialog-title").textContent = "Add Slot";
+  document.getElementById("dialog-title").textContent = t("addSlotTitle");
   document.getElementById("dialog-name").parentElement.style.display = "none";
   document.getElementById("dialog-slots").style.display = "";
   document.getElementById("dialog-slot-list").innerHTML = "";
-  document.getElementById("dialog-confirm").textContent = "Add";
+  document.getElementById("dialog-confirm").textContent = t("add");
   addDialogSlot();
   document.getElementById("dialog-overlay").classList.remove("hidden");
 }
@@ -581,11 +601,11 @@ function addDialogSlot() {
 function confirmDialog() {
   if (dialogMode === "new-user") {
     const name = document.getElementById("dialog-name").value.trim();
-    if (!name) return alert("Please enter a name");
+    if (!name) return alert(t("enterName"));
 
     const slotEls = document.querySelectorAll("#dialog-slot-list select");
-    if (slotEls.length === 0) return alert("Add at least one slot");
-    if (slotEls.length > 4) return alert("Maximum 4 slots per user");
+    if (slotEls.length === 0) return alert(t("addOneslot"));
+    if (slotEls.length > 4) return alert(t("maxSlots"));
 
     const slots = Array.from(slotEls).map((s) => ({ duration: parseInt(s.value) }));
 
@@ -640,7 +660,7 @@ async function runScheduling() {
   };
 
   const btn = document.getElementById("schedule-btn");
-  btn.textContent = "Scheduling...";
+  btn.textContent = t("scheduling");
   btn.disabled = true;
 
   try {
@@ -663,7 +683,7 @@ async function runScheduling() {
   } catch (err) {
     alert("Error: " + err.message);
   } finally {
-    btn.textContent = "Start Scheduling";
+    btn.textContent = t("startScheduling");
     btn.disabled = false;
   }
 }

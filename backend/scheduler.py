@@ -95,10 +95,20 @@ class Assignment:
 
 
 @dataclass
+class UnscheduledSlot:
+    """A slot request that could not be scheduled."""
+
+    user_name: str
+    slot_idx: int
+    duration_min: int
+
+
+@dataclass
 class ScheduleResult:
     """Full output of the optimiser."""
 
     assignments: List[Assignment]
+    unscheduled: List[UnscheduledSlot]
     total_requested: int
     total_scheduled: int
     status: str  # "OPTIMAL", "FEASIBLE", "INFEASIBLE", "ERROR"
@@ -119,7 +129,13 @@ def solve(scheduler: Scheduler, time_limit_seconds: float = 100.0,
 
     pt_blocks = _availability_to_blocks(scheduler.availability)
     if not pt_blocks:
-        return ScheduleResult([], 0, 0, "INFEASIBLE")
+        all_unscheduled = [
+            UnscheduledSlot(user_name=u.name, slot_idx=si, duration_min=sr.duration_min)
+            for u in scheduler.users
+            for si, sr in enumerate(u.slot_requests)
+        ]
+        total = sum(len(u.slot_requests) for u in scheduler.users)
+        return ScheduleResult([], all_unscheduled, total, 0, "INFEASIBLE")
 
     # Collect all (user, slot_index, slot_request) triples
     slot_vars: List[
@@ -220,10 +236,16 @@ def solve(scheduler: Scheduler, time_limit_seconds: float = 100.0,
     }.get(status, "ERROR")
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        return ScheduleResult([], total_requested, 0, status_name)
+        all_unscheduled = [
+            UnscheduledSlot(user_name=u.name, slot_idx=si, duration_min=sr.duration_min)
+            for u in scheduler.users
+            for si, sr in enumerate(u.slot_requests)
+        ]
+        return ScheduleResult([], all_unscheduled, total_requested, 0, status_name)
 
     # Extract assignments
     assignments: List[Assignment] = []
+    scheduled_keys: Set[Tuple[str, int]] = set()
     for user, s_idx, slot_req, start_vars in slot_vars:
         for start_b, var in start_vars:
             if solver.value(var):
@@ -240,11 +262,26 @@ def solve(scheduler: Scheduler, time_limit_seconds: float = 100.0,
                         start_block=start_b,
                     )
                 )
+                scheduled_keys.add((user.name, s_idx))
 
     assignments.sort(key=lambda a: a.start_block)
 
+    # Determine unscheduled slots
+    unscheduled: List[UnscheduledSlot] = []
+    for user in scheduler.users:
+        for si, sr in enumerate(user.slot_requests):
+            if (user.name, si) not in scheduled_keys:
+                unscheduled.append(
+                    UnscheduledSlot(
+                        user_name=user.name,
+                        slot_idx=si,
+                        duration_min=sr.duration_min,
+                    )
+                )
+
     return ScheduleResult(
         assignments=assignments,
+        unscheduled=unscheduled,
         total_requested=total_requested,
         total_scheduled=len(assignments),
         status=status_name,
