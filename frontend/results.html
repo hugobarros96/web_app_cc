@@ -300,6 +300,8 @@
     let calendar;
     let selectedUser = null; // null = show all results
 
+    const DAY_NAMES_EN = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
     // Helper: get date string for a day name relative to current week's Monday
     function getDateForDay(dayName) {
       const dayMapJS = {
@@ -316,6 +318,54 @@
       const date = new Date(monday);
       date.setDate(monday.getDate() + offset);
       return date.toISOString().slice(0, 10);
+    }
+
+    function timeStr(date) {
+      return date.toTimeString().slice(0, 5);
+    }
+
+    function timeToMin(t) {
+      const [h, m] = t.split(":").map(Number);
+      return h * 60 + m;
+    }
+
+    // Check if [start, end) on dayName falls entirely within availability windows
+    function isWithinAvailability(dayName, startMin, endMin, windows) {
+      if (!windows) return false;
+      for (const w of windows) {
+        if (w.day === dayName) {
+          const wStart = timeToMin(w.start);
+          const wEnd = timeToMin(w.end);
+          if (startMin >= wStart && endMin <= wEnd) return true;
+        }
+      }
+      return false;
+    }
+
+    // Check if [start, end) on dayName overlaps any other assignment (excluding index skipIdx)
+    function overlapsOtherAssignment(dayName, startMin, endMin, skipIdx) {
+      if (!data.assignments) return false;
+      for (let i = 0; i < data.assignments.length; i++) {
+        if (i === skipIdx) continue;
+        const a = data.assignments[i];
+        if (a.day !== dayName) continue;
+        const aStart = timeToMin(a.start_time);
+        const aEnd = timeToMin(a.end_time);
+        if (startMin < aEnd && endMin > aStart) return true;
+      }
+      return false;
+    }
+
+    // Check same-day constraint: no two slots for same user on same day (excluding skipIdx)
+    function hasSameDaySlot(userName, dayName, skipIdx) {
+      if (!data.assignments) return false;
+      for (let i = 0; i < data.assignments.length; i++) {
+        if (i === skipIdx) continue;
+        if (data.assignments[i].user_name === userName && data.assignments[i].day === dayName) {
+          return true;
+        }
+      }
+      return false;
     }
 
     // Make a color translucent
@@ -371,7 +421,7 @@
         slotDuration: "00:15:00",
         slotLabelInterval: "01:00:00",
         allDaySlot: false,
-        editable: false,
+        editable: true,
         selectable: false,
         eventOverlap: true,
         slotEventOverlap: true,
@@ -380,6 +430,9 @@
           left: "title",
           center: "",
           right: "today prev,next",
+        },
+        eventDrop: function (info) {
+          handleEventDrop(info);
         },
       });
       calendar.render();
@@ -466,6 +519,7 @@
             borderColor: PT_BORDER,
             textColor: "#4338ca",
             display: "background",
+            editable: false,
             order: -2,
           });
         }
@@ -491,6 +545,7 @@
               backgroundColor: toTranslucent(userColor, 0.15),
               borderColor: toTranslucent(userColor, 0.35),
               textColor: userColor,
+              editable: false,
               order: -1,
             });
           }
@@ -618,6 +673,7 @@
       data.assignments.forEach((a, i) => {
         const dateStr = getDateForDay(a.day);
         const userColor = (data.user_colors && data.user_colors[a.user_name]) || "#3b82f6";
+        const isDraggable = selectedUser !== null && a.user_name === selectedUser;
         events.push({
           id: "result_" + i,
           title: `${a.user_name} (${a.duration_min}min)`,
@@ -627,9 +683,63 @@
           borderColor: userColor,
           textColor: "#fff",
           order: 1,
+          editable: isDraggable,
+          extendedProps: { assignmentIdx: i },
         });
       });
       return events;
+    }
+
+    function handleEventDrop(info) {
+      const idx = info.event.extendedProps.assignmentIdx;
+      if (idx === undefined) {
+        info.revert();
+        return;
+      }
+
+      const assignment = data.assignments[idx];
+      const userName = assignment.user_name;
+      const newStart = info.event.start;
+      const newEnd = info.event.end;
+      const newDayName = DAY_NAMES_EN[newStart.getDay()];
+      const newStartTime = timeStr(newStart);
+      const newEndTime = timeStr(newEnd);
+      const newStartMin = timeToMin(newStartTime);
+      const newEndMin = timeToMin(newEndTime);
+
+      // Validate: within PT availability
+      if (!isWithinAvailability(newDayName, newStartMin, newEndMin, data.pt_availability)) {
+        info.revert();
+        return;
+      }
+
+      // Validate: within user's availability
+      const userAvail = data.user_availability && data.user_availability[userName];
+      if (!isWithinAvailability(newDayName, newStartMin, newEndMin, userAvail)) {
+        info.revert();
+        return;
+      }
+
+      // Validate: no overlap with other assignments
+      if (overlapsOtherAssignment(newDayName, newStartMin, newEndMin, idx)) {
+        info.revert();
+        return;
+      }
+
+      // Validate: same-day constraint (no two slots for same user on same day)
+      if (newDayName !== assignment.day && hasSameDaySlot(userName, newDayName, idx)) {
+        info.revert();
+        return;
+      }
+
+      // All valid — update the assignment data
+      assignment.day = newDayName;
+      assignment.start_time = newStartTime;
+      assignment.end_time = newEndTime;
+
+      // Update sidebar text and save
+      document.getElementById("results-text").innerHTML = formatResultsHtml(data);
+      sessionStorage.setItem("schedulingResults", JSON.stringify(data));
     }
   </script>
 </body>
