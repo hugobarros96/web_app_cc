@@ -36,6 +36,7 @@
       width: 340px;
       min-width: 340px;
       padding: 20px 16px;
+      overflow-y: auto;
     }
 
     #results-sidebar > *:not(.sidebar-toggle):not(.results-text) {
@@ -171,6 +172,8 @@
       white-space: pre-wrap;
       word-break: break-word;
       flex: 1;
+      min-height: 180px;
+      flex-shrink: 0;
       overflow-y: auto;
       user-select: all;
     }
