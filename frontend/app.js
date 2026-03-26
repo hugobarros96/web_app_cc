@@ -408,8 +408,25 @@ function renderSidebar() {
       ptCard.appendChild(ptInfo);
     }
     ptInfo.textContent = t("availabilityBlocks")(state.ptAvailability.length);
-  } else if (ptInfo) {
-    ptInfo.remove();
+
+    let ptResetBtn = ptCard.querySelector(".reset-availability-btn");
+    if (!ptResetBtn) {
+      ptResetBtn = document.createElement("button");
+      ptResetBtn.className = "btn btn-reset reset-availability-btn";
+      ptResetBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        state.ptAvailability = [];
+        refreshCalendarEvents();
+        renderSidebar();
+        persistState();
+      });
+      ptCard.appendChild(ptResetBtn);
+    }
+    ptResetBtn.textContent = t("resetSchedulerAvailability");
+  } else {
+    if (ptInfo) ptInfo.remove();
+    const existingResetBtn = ptCard.querySelector(".reset-availability-btn");
+    if (existingResetBtn) existingResetBtn.remove();
   }
 
   const list = document.getElementById("user-list");
@@ -519,11 +536,28 @@ function renderSidebar() {
         row.append(label, removeBtn);
         dropdown.appendChild(row);
       }
+
     }
 
     card.appendChild(dropdown);
     card.addEventListener("click", () => selectUser(user.id));
     list.appendChild(card);
+  }
+
+  // ── Reset All Users Availability button ──
+  const hasAnyAvailability = state.users.some((u) => u.availability.length > 0);
+  if (hasAnyAvailability) {
+    const resetAllBtn = document.createElement("button");
+    resetAllBtn.className = "btn btn-reset";
+    resetAllBtn.textContent = t("resetAllUsersAvailability");
+    resetAllBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      for (const u of state.users) u.availability = [];
+      refreshCalendarEvents();
+      renderSidebar();
+      persistState();
+    });
+    list.appendChild(resetAllBtn);
   }
 
   // ── Group Slots section ──

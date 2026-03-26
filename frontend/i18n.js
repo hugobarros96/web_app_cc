@@ -23,6 +23,8 @@ const I18N = {
     addSlot: "+ Add Slot",
     addGroupSlot: "+ Add Group Slot",
     groupSlots: "Group Slots",
+    resetAllUsersAvailability: "Reset All Users Availability",
+    resetSchedulerAvailability: "Reset Availability",
 
     // Dialog
     newUser: "New User",
@@ -87,6 +89,8 @@ const I18N = {
     addSlot: "+ Adicionar Sessão",
     addGroupSlot: "+ Adicionar Sessão de Grupo",
     groupSlots: "Sessões de Grupo",
+    resetAllUsersAvailability: "Limpar Disponibilidade de Todos",
+    resetSchedulerAvailability: "Limpar Disponibilidade",
 
     // Dialog
     newUser: "Novo Utilizador",

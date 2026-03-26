@@ -175,6 +175,21 @@ body {
   margin-top: 4px;
 }
 
+.btn-reset {
+  width: 100%;
+  margin-top: 6px;
+  background: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.btn-reset:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 .slot-section-label,
 .avail-section-label {
   font-size: 11px;
