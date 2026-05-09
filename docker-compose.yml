@@ -6,10 +6,13 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app/backend
-      - ./frontend:/app/frontend
+      - ./portfolio:/app/portfolio
+      - ./projects:/app/projects
     environment:
       - PYTHONDONTWRITEBYTECODE=1
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PUSHOVER_TOKEN=${PUSHOVER_TOKEN}
+      - PUSHOVER_USER=${PUSHOVER_USER}
 
   caddy:
     image: caddy:2

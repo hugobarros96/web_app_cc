@@ -1,12 +1,17 @@
 [project]
-name = "scheduling"
+name = "portfolio"
 version = "0.1.0"
-description = "Add your description here"
+description = "Hugo Barros — personal portfolio (Scheduler, MyCompanionCV)"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.135.1",
     "ortools>=9.15.6755",
     "uvicorn[standard]>=0.41.0",
+    "gradio>=5.0.0",
+    "openai>=1.50.0",
+    "python-dotenv>=1.0.1",
+    "pypdf>=5.0.0",
+    "requests>=2.32.0",
 ]
 
 [build-system]
@@ -14,7 +19,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["backend"]
+packages = ["portfolio", "projects"]
 
 [dependency-groups]
 dev = [

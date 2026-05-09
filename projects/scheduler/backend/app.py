@@ -1,10 +1,10 @@
-"""FastAPI application — serves the API and static frontend."""
+"""Scheduler sub-app — mounted under /scheduler in the portfolio app."""
 
 from pathlib import Path
 from typing import List
 
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
 from .users import Day, Scheduler, User
@@ -63,7 +63,7 @@ class SolveResponse(BaseModel):
 
 # ── Solver endpoint ──
 
-@app.post("/scheduler/api/solve", response_model=SolveResponse)
+@app.post("/api/solve", response_model=SolveResponse)
 async def api_solve(req: SolveRequest):
     scheduler = Scheduler(name="PT")
     for tw in req.pt_availability:
@@ -118,32 +118,24 @@ async def api_solve(req: SolveRequest):
     )
 
 
-# ── Landing page ──
+# ── Pages ──
 
 @app.get("/")
-async def landing():
-    return FileResponse(FRONTEND_DIR / "landing.html")
-
-
-# ── Scheduler app under /scheduler ──
-
-@app.get("/scheduler")
-async def scheduler_index():
+async def index():
     return FileResponse(FRONTEND_DIR / "index.html")
 
 
-@app.get("/scheduler/results")
+@app.get("/results")
 async def results():
     return FileResponse(FRONTEND_DIR / "results.html")
 
 
 # ── Static files (with no-cache headers) ──
 
-@app.get("/scheduler/static/{file_path:path}")
+@app.get("/static/{file_path:path}")
 async def static_files(file_path: str):
     full_path = FRONTEND_DIR / file_path
     if not full_path.is_file():
-        from fastapi.responses import Response
         return Response(status_code=404)
     return FileResponse(
         full_path,

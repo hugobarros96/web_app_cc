@@ -1,6 +1,6 @@
 import pytest
-from backend.users import Day, Scheduler, User
-from backend.scheduler import solve
+from projects.scheduler.backend.users import Day, Scheduler, User
+from projects.scheduler.backend.scheduler import solve
 
 
 def make_pt(*days_and_times):

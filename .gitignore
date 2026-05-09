@@ -17,3 +17,7 @@ wheels/
 
 # Secrets
 .secrets
+.env
+
+# Tool call logs
+tool_call_results_log.txt

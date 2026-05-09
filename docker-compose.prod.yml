@@ -1,0 +1,27 @@
+## Production override — usage:
+##   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+##
+## Differences vs the base (dev) compose:
+##   - drops the live-mount source volumes (container runs what's baked in the image)
+##   - drops the public 8000 host port (Caddy on 80/443 is the only public entry point)
+##   - adds restart policy and log rotation
+##
+## `!reset []` is required (Compose v2.24+) — plain `[]` would be merged, not reset.
+
+services:
+  web:
+    restart: unless-stopped
+    volumes: !reset []
+    ports: !reset []
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  caddy:
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

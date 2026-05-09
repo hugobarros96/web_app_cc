@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hugo Barros</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .landing {
+      text-align: center;
+      max-width: 720px;
+      width: 100%;
+    }
+    .landing h1 {
+      font-size: 2.25rem;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+    .landing p.tagline {
+      color: #6b7280;
+      margin-bottom: 2.5rem;
+    }
+    .projects {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+    .project-card {
+      display: block;
+      padding: 1.5rem;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    }
+    .project-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+      border-color: #6366f1;
+    }
+    .project-card h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #6366f1;
+    }
+    .project-card p {
+      color: #4b5563;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    .lang-toggle {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 0;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #d1d5db;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .lang-btn {
+      padding: 4px 10px;
+      border: none;
+      background: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      transition: background 0.15s, color 0.15s;
+    }
+    .lang-btn:not(:last-child) { border-right: 1px solid #d1d5db; }
+    .lang-btn.active { background: #6366f1; color: #fff; }
+    .lang-btn:hover:not(.active) { background: #f3f4f6; }
+  </style>
+  <script src="/static/i18n.js"></script>
+</head>
+<body>
+  <div class="landing">
+    <h1>hugobarros.cc</h1>
+    <p class="tagline" id="tagline"></p>
+    <div class="projects">
+      <a class="project-card" href="/scheduler">
+        <h2 id="scheduler-title"></h2>
+        <p id="scheduler-desc"></p>
+      </a>
+      <a class="project-card" href="/mycompanioncv">
+        <h2 id="companion-title"></h2>
+        <p id="companion-desc"></p>
+      </a>
+    </div>
+  </div>
+  <script>
+    document.getElementById("tagline").textContent = t("portfolioTagline");
+    document.getElementById("scheduler-title").textContent = t("scheduler");
+    document.getElementById("scheduler-desc").textContent = t("schedulerDesc");
+    document.getElementById("companion-title").textContent = t("companion");
+    document.getElementById("companion-desc").textContent = t("companionDesc");
+    createLangToggle(document.body);
+  </script>
+</body>
+</html>

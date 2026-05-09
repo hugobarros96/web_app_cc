@@ -1,5 +1,5 @@
 {
-  "name": "Scheduling App",
+  "name": "Portfolio",
   "dockerComposeFile": "../docker-compose.yml",
   "service": "web",
   "workspaceFolder": "/app",

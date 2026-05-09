@@ -12,12 +12,12 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 # Copy application code
-COPY backend/ backend/
-COPY frontend/ frontend/
+COPY portfolio/ portfolio/
+COPY projects/ projects/
 
 # Install the project itself
 RUN uv sync --frozen --no-dev
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "portfolio.app:app", "--host", "0.0.0.0", "--port", "8000"]

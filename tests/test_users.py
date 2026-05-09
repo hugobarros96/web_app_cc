@@ -1,5 +1,5 @@
 import pytest
-from backend.users import Day, Scheduler, SlotRequest, User
+from projects.scheduler.backend.users import Day, Scheduler, SlotRequest, User
 
 
 class TestSlotRequest:
