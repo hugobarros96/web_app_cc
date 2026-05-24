@@ -36,6 +36,20 @@
 
       <div class="sidebar-spacer"></div>
 
+      <!-- Chat agent panel -->
+      <div id="chat-panel">
+        <div id="chat-history" class="chat-history" aria-live="polite"></div>
+        <form id="chat-form" class="chat-form">
+          <input
+            type="text"
+            id="chat-input"
+            class="chat-input"
+            autocomplete="off"
+          />
+          <button type="submit" id="chat-send" class="btn btn-small chat-send"></button>
+        </form>
+      </div>
+
       <!-- Start Scheduling button -->
       <button id="schedule-btn" class="btn btn-schedule"></button>
     </aside>

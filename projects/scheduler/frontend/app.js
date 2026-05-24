@@ -24,6 +24,7 @@ const state = {
   users: [],           // { id, name, color, slots: [{duration}], availability: [{day, start, end, eventId}] }
   ptAvailability: [],  // [{day, start, end, eventId}]
   groupSlots: [],      // { id, duration, memberIds: [userId, ...] }
+  chatHistory: [],     // [{role: "user"|"assistant", content: string}]
 };
 
 let calendar;
@@ -248,8 +249,21 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("dialog-confirm").addEventListener("click", confirmDialog);
   document.getElementById("dialog-add-slot").addEventListener("click", addDialogSlot);
 
+  // Chat
+  document.getElementById("chat-input").placeholder = t("chatPlaceholder");
+  document.getElementById("chat-send").textContent = t("chatSend");
+  document.getElementById("chat-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = document.getElementById("chat-input");
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    sendChatMessage(text);
+  });
+
   refreshCalendarEvents();
   renderSidebar();
+  renderChat();
 });
 
 /* ──────────────────────────────────────────────
@@ -966,5 +980,207 @@ async function runScheduling() {
   } finally {
     btn.textContent = t("startScheduling");
     btn.disabled = false;
+  }
+}
+
+/* ──────────────────────────────────────────────
+   Chat agent
+   ────────────────────────────────────────────── */
+
+/** Snapshot the current state in the shape the backend expects. */
+function buildChatStateSnapshot() {
+  return {
+    users: state.users.map((u) => ({
+      id: u.id,
+      name: u.name,
+      color: u.color,
+      slots: u.slots.map((s) => s.duration),
+      availability: u.availability.map((a) => ({
+        day: DAY_MAP[a.day],
+        start: a.start,
+        end: a.end,
+        event_id: a.eventId,
+      })),
+    })),
+    pt_availability: state.ptAvailability.map((a) => ({
+      day: DAY_MAP[a.day],
+      start: a.start,
+      end: a.end,
+      event_id: a.eventId,
+    })),
+  };
+}
+
+/** Render the chat transcript into #chat-history. */
+function renderChat(pendingAssistant = false, errorMsg = null) {
+  const histEl = document.getElementById("chat-history");
+  histEl.innerHTML = "";
+
+  if (state.chatHistory.length === 0 && !pendingAssistant && !errorMsg) {
+    const hint = document.createElement("div");
+    hint.className = "chat-hint";
+    hint.textContent = t("chatHint");
+    histEl.appendChild(hint);
+    return;
+  }
+
+  for (const msg of state.chatHistory) {
+    const div = document.createElement("div");
+    div.className = "chat-msg " + msg.role;
+    div.textContent = msg.content;
+    histEl.appendChild(div);
+  }
+
+  if (pendingAssistant) {
+    const div = document.createElement("div");
+    div.className = "chat-msg assistant pending";
+    div.textContent = t("chatThinking");
+    histEl.appendChild(div);
+  }
+  if (errorMsg) {
+    const div = document.createElement("div");
+    div.className = "chat-msg assistant error";
+    div.textContent = errorMsg;
+    histEl.appendChild(div);
+  }
+
+  histEl.scrollTop = histEl.scrollHeight;
+}
+
+/** POST the message to /api/chat and apply returned actions. */
+async function sendChatMessage(text) {
+  state.chatHistory.push({ role: "user", content: text });
+  renderChat(true);
+
+  const payload = {
+    message: text,
+    history: state.chatHistory.slice(0, -1),  // history excludes the message being sent
+    state: buildChatStateSnapshot(),
+  };
+
+  try {
+    const resp = await fetch("/scheduler/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+
+    for (const action of data.actions || []) {
+      applyChatAction(action);
+    }
+
+    state.chatHistory.push({ role: "assistant", content: data.reply || "" });
+
+    if ((data.actions || []).length > 0) {
+      refreshCalendarEvents();
+      renderSidebar();
+      persistState();
+    }
+    renderChat();
+  } catch (err) {
+    console.error("Chat error:", err);
+    renderChat(false, t("chatError"));
+  }
+}
+
+/** Apply a single ChatAction to local state. Frontend is source of truth. */
+function applyChatAction(action) {
+  const { type, payload } = action;
+  switch (type) {
+    case "create_user": {
+      const existing = state.users.find(
+        (u) => u.name.toLowerCase() === payload.name.toLowerCase()
+      );
+      if (existing) {
+        // Treat as edit: append any new slots/availability.
+        for (const dur of payload.slots || []) {
+          if (existing.slots.length >= 4) break;
+          existing.slots.push({ duration: dur });
+        }
+        for (const a of payload.availability || []) {
+          existing.availability.push({
+            day: DAY_NAMES[a.day],
+            start: a.start,
+            end: a.end,
+            eventId: "ev_" + nextEventId++,
+          });
+        }
+        existing.availability = mergeAvailability(existing.availability);
+        return;
+      }
+      const user = {
+        id: "user_" + Date.now() + "_" + nextEventId++,
+        name: payload.name,
+        color: payload.color || nextColor(),
+        slots: (payload.slots || []).slice(0, 4).map((d) => ({ duration: d })),
+        availability: (payload.availability || []).map((a) => ({
+          day: DAY_NAMES[a.day],
+          start: a.start,
+          end: a.end,
+          eventId: "ev_" + nextEventId++,
+        })),
+      };
+      user.availability = mergeAvailability(user.availability);
+      state.users.push(user);
+      return;
+    }
+
+    case "add_availability": {
+      const block = {
+        day: DAY_NAMES[payload.day],
+        start: payload.start,
+        end: payload.end,
+        eventId: "ev_" + nextEventId++,
+      };
+      if (payload.user_id === "pt") {
+        state.ptAvailability.push(block);
+        state.ptAvailability = mergeAvailability(state.ptAvailability);
+      } else {
+        const u = state.users.find((u) => u.id === payload.user_id)
+          || state.users.find((u) => u.name.toLowerCase() === String(payload.user_id).toLowerCase());
+        if (!u) return;
+        u.availability.push(block);
+        u.availability = mergeAvailability(u.availability);
+      }
+      return;
+    }
+
+    case "add_slot": {
+      const u = state.users.find((u) => u.id === payload.user_id)
+        || state.users.find((u) => u.name.toLowerCase() === String(payload.user_id).toLowerCase());
+      if (!u || u.slots.length >= 4) return;
+      u.slots.push({ duration: payload.duration });
+      return;
+    }
+
+    case "remove_availability": {
+      if (payload.user_id === "pt") {
+        state.ptAvailability = state.ptAvailability.filter(
+          (a) => a.eventId !== payload.event_id
+        );
+      } else {
+        const u = state.users.find((u) => u.id === payload.user_id)
+          || state.users.find((u) => u.name.toLowerCase() === String(payload.user_id).toLowerCase());
+        if (!u) return;
+        u.availability = u.availability.filter((a) => a.eventId !== payload.event_id);
+      }
+      return;
+    }
+
+    case "clear_availability": {
+      if (payload.user_id === "pt") {
+        state.ptAvailability = [];
+      } else {
+        const u = state.users.find((u) => u.id === payload.user_id)
+          || state.users.find((u) => u.name.toLowerCase() === String(payload.user_id).toLowerCase());
+        if (u) u.availability = [];
+      }
+      return;
+    }
+
+    default:
+      console.warn("Unknown chat action type:", type);
   }
 }

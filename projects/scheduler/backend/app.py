@@ -7,8 +7,10 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
 
+from .chat import ChatRequest, ChatResponse
 from .users import Day, Scheduler, User
 from .scheduler import solve
+from ..agent.scheduling_agent import run_agent
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
@@ -116,6 +118,13 @@ async def api_solve(req: SolveRequest):
         total_scheduled=result.total_scheduled,
         status=result.status,
     )
+
+
+# ── Chat agent endpoint ──
+
+@app.post("/api/chat", response_model=ChatResponse)
+async def api_chat(req: ChatRequest) -> ChatResponse:
+    return await run_agent(req)
 
 
 # ── Pages ──

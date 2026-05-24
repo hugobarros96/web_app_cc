@@ -65,6 +65,13 @@ const I18N = {
     warningSlotNotScheduled: (user, duration) =>
       `WARNING: Slot (${duration}min) for ${user} was not scheduled due to incompatibility.`,
 
+    // Chat
+    chatPlaceholder: "Ask the agent…",
+    chatSend: "Send",
+    chatThinking: "Thinking…",
+    chatError: "Something went wrong. Try again.",
+    chatHint: "Try: \"add Maria with a 60-min slot\" or \"PT works Mon–Fri 9–17\"",
+
     // Footer
     footer: "&copy; 2026 Developed by Hugo Barros",
   },
@@ -130,6 +137,13 @@ const I18N = {
     slotsScheduled: (scheduled, total) => `${scheduled} de ${total} sessões agendadas`,
     warningSlotNotScheduled: (user, duration) =>
       `AVISO: Sessão (${duration}min) de ${user} não foi agendada por incompatibilidade.`,
+
+    // Chat
+    chatPlaceholder: "Pergunte ao agente…",
+    chatSend: "Enviar",
+    chatThinking: "A pensar…",
+    chatError: "Ocorreu um erro. Tente novamente.",
+    chatHint: "Experimente: \"adicionar Maria com sessão de 60 min\" ou \"PT trabalha Seg–Sex 9–17\"",
 
     // Footer
     footer: "&copy; 2026 Desenvolvido por Hugo Barros",
