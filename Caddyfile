@@ -1,3 +1,14 @@
 hugobarros.cc {
+	# Rate limit: 10 events per IP in any rolling 2-second window.
+	# Sustained ~5 req/s with bursts up to 10 — enough for normal page
+	# loads (favicon + css + js fetched together) but blocks abuse.
+	rate_limit {
+		zone per_ip {
+			key    {remote_host}
+			events 10
+			window 2s
+		}
+	}
+
 	reverse_proxy web:8000
 }

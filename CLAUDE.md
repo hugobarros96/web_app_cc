@@ -60,6 +60,11 @@ uv run uvicorn portfolio.app:app --reload
 ```bash
 docker compose up --build
 ```
+## Git
+When connecting to git use the PAT directly:
+Example:
+git push https://PAT@github.com/hugobarros96/web_app_cc.git main
+PAT is defined in .secrets - PAT=
 
 ## Deployment
 - Docker image, docker-compose with Caddy for HTTPS
