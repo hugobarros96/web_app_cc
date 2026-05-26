@@ -283,9 +283,9 @@
     document.getElementById("bio3").innerHTML = t("bio3");
     document.getElementById("projects-heading").textContent = t("projectsHeading");
     document.getElementById("scheduler-title").textContent = t("scheduler");
-    document.getElementById("scheduler-desc").textContent = t("schedulerDesc");
+    document.getElementById("scheduler-desc").innerHTML = t("schedulerDesc");
     document.getElementById("companion-title").textContent = t("companion");
-    document.getElementById("companion-desc").textContent = t("companionDesc");
+    document.getElementById("companion-desc").innerHTML = t("companionDesc");
 
     const nav = document.getElementById("header-nav");
     fetch("/api/links")

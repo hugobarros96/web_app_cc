@@ -16,8 +16,10 @@ from projects.scheduler.backend.app import app as scheduler_app
 from projects.mycompanioncv.app import build_demo as build_companion_demo
 
 
-FRONTEND_DIR = Path(__file__).resolve().parent / "frontend"
-ARTIFACTS_DIR = Path(__file__).resolve().parent.parent / "artifacts"
+PORTFOLIO_DIR = Path(__file__).resolve().parent
+FRONTEND_DIR = PORTFOLIO_DIR / "frontend"
+ARTIFACTS_DIR = PORTFOLIO_DIR.parent / "artifacts"
+LINKS_FILE = PORTFOLIO_DIR / "links.yaml"
 
 app = FastAPI(title="Hugo Barros — Portfolio")
 
@@ -48,7 +50,7 @@ async def landing_artifacts(file_path: str):
 
 @app.get("/api/links")
 async def landing_links():
-    with open(ARTIFACTS_DIR / "links.yaml") as f:
+    with open(LINKS_FILE) as f:
         return JSONResponse(yaml.safe_load(f))
 
 

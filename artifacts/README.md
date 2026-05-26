@@ -2,20 +2,23 @@
 
 This directory holds runtime assets that **aren't checked into the repo**
 because they're personal: the CV PDF used to ground the chatbot, the
-profile photo on the landing page, demo videos of each project, and a
-links file with my contact details. Anyone cloning the public repo will
-see this README and an otherwise empty folder — that's intentional.
+profile photo on the landing page, and demo videos of each project.
+Anyone cloning the public repo will see this README and an otherwise
+empty folder — that's intentional.
 
 The whole directory is gitignored (only this README is tracked) and
 bind-mounted into the container at runtime, so the files live on the
 host machine, not in the docker image and not on GitHub.
+
+Non-private landing-page config (the contact links shown in the header)
+lives at [portfolio/links.yaml](../portfolio/links.yaml) instead, since
+there's no reason to hide it.
 
 ## What should be here
 
 Landing-page files, directly at the root:
 
 - `profile_hugo.jpg` — profile photo for the landing hero
-- `links.yaml` — LinkedIn / GitHub / email shown in the page header
 - `scheduling_video_example.mp4` — demo loop for the Scheduler card
 - `cvcompanion_example.mp4` — demo loop for the MyCompanionCV card
 

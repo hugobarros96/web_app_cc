@@ -8,9 +8,9 @@ const I18N = {
     bio3: "Background in <strong>Bioengineering</strong> (MSc, FEUP), where I first got hooked on applied ML. Outside work I build small things on the side to learn something new. These two are the latest.",
     projectsHeading: "Personal projects",
     scheduler: "Scheduler",
-    schedulerDesc: "Optimization based weekly scheduler for fitting clients into a trainer's calendar. I built an optimizer that finds the best fit given everyone's availabilities, a real world case used by my own gym PT. I later added a LangGraph chat that takes free text and turns it into actions, creating users and availabilities automatically.",
+    schedulerDesc: "Optimization based weekly scheduler for fitting clients into a trainer's calendar. I built an optimizer that finds the best fit given everyone's availabilities, a real world case used by my own gym PT. I later added a <strong>LangGraph</strong> chat that takes free text and turns it into actions, creating users and availabilities automatically.",
     companion: "Chat with Hugo",
-    companionDesc: "Gradio chatbot that answers as me, grounded in my CV and a personal summary, ask about my background, projects, or experience.",
+    companionDesc: "A chatbot that answers as me, grounded in my CV and a personal summary. Built with the <strong>OpenAI SDK</strong> and served through a Gradio interface, ask it about my background, projects, or experience.",
     contactCta: "If you want to know more about me, contact me at {email} and I'll send you my CV.",
   },
   pt: {
@@ -20,9 +20,9 @@ const I18N = {
     bio3: "Formação em <strong>Bioengenharia</strong> (MSc, FEUP), onde me apaixonei por ML aplicado. Fora do trabalho construo coisas pequenas em paralelo, para aprender algo novo. Estas duas são as mais recentes.",
     projectsHeading: "Projetos pessoais",
     scheduler: "Agendador",
-    schedulerDesc: "Agendador que otimiza os horários dos clientes e do treinador. Construí um otimizador que encontra a melhor solução a partir das disponibilidades de cada um, um caso real usado pelo meu PT do ginásio. Mais tarde adicionei um chat em LangGraph que recebe texto livre e o transforma em ações, criando utilizadores e disponibilidades automaticamente.",
+    schedulerDesc: "Agendador que otimiza os horários dos clientes e do treinador. Construí um otimizador que encontra a melhor solução a partir das disponibilidades de cada um, um caso real usado pelo meu PT do ginásio. Mais tarde adicionei um chat em <strong>LangGraph</strong> que recebe texto livre e o transforma em ações, criando utilizadores e disponibilidades automaticamente.",
     companion: "Fala com o Hugo",
-    companionDesc: "Chatbot em Gradio que responde como se fosse eu, com base no meu CV e num resumo pessoal, pergunta sobre o meu percurso, projetos ou experiência.",
+    companionDesc: "Um chatbot que responde como se fosse eu, com base no meu CV e num resumo pessoal. Construído com o <strong>OpenAI SDK</strong> e servido através de uma interface Gradio, pergunta sobre o meu percurso, projetos ou experiência.",
     contactCta: "Se quiseres saber mais sobre mim, contacta-me para {email} e envio-te o meu CV.",
   },
 };
