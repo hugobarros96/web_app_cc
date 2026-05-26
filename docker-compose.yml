@@ -16,10 +16,10 @@ services:
       - PUSHOVER_USER=${PUSHOVER_USER}
 
   caddy:
-    build:
-      context: .
-      dockerfile: caddy.Dockerfile
-    image: scheduling-caddy:ratelimit
+    # Built locally via caddy.Dockerfile, then pushed to ghcr.io.
+    # Rebuild + push only when caddy.Dockerfile changes (see README).
+    image: ghcr.io/hugobarros96/scheduling-caddy:ratelimit
+    pull_policy: missing
     restart: unless-stopped
     ports:
       - "80:80"
