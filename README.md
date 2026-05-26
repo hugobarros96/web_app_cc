@@ -62,6 +62,78 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 In production this is deployed at `hugobarros.cc` (VM `35.231.149.237`),
 fronted by Caddy for HTTPS.
 
+## Deploy to production
+
+The prod VM is small (2 vCPU / ~1 GB RAM / 10 GB `pd-standard` disk), so we
+**don't build the Caddy image on it** — that step alone took 13+ minutes
+because the disk is I/O bound. The custom Caddy image (stock Caddy + the
+`caddy-ratelimit` plugin) is built once on a fast machine, pushed to
+[ghcr.io/hugobarros96/scheduling-caddy](https://github.com/users/hugobarros96/packages/container/scheduling-caddy)
+(public), and pulled on the VM.
+
+### Routine deploy (code changes only)
+
+```bash
+ssh hugobarros96@35.231.149.237
+cd ~/code/web_app_cc
+git pull
+docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+```
+
+The first `up -d` after a fresh clone pulls the caddy image from ghcr.io
+(~88 MB, a few seconds). Subsequent `up -d` reuses the cached caddy image.
+The `web` image still builds from `Dockerfile` on the VM (~1–2 min for code
+changes; uses layer cache for unchanged deps).
+
+If `web` code didn't change at all, add `--no-build` to make it instant. If
+you want to force a rebuild of the python image, add `--build`.
+
+### Updating the Caddy image (rare — only when caddy.Dockerfile changes)
+
+Done on your laptop, not the VM:
+
+```bash
+# 1. Login to ghcr.io (one-time setup; reuses PAT in .secrets with write:packages scope)
+PAT=$(grep -E '^PAT=' .secrets | cut -d= -f2-)
+echo "$PAT" | docker login ghcr.io -u hugobarros96 --password-stdin
+
+# 2. Build the image locally (~1 min on a laptop vs 13 min on the VM)
+docker build -f caddy.Dockerfile \
+  -t ghcr.io/hugobarros96/scheduling-caddy:ratelimit \
+  --platform linux/amd64 .
+
+# 3. Push
+docker push ghcr.io/hugobarros96/scheduling-caddy:ratelimit
+```
+
+Then on the VM, force a refresh (since `pull_policy: missing` won't re-check
+the registry when a local copy exists):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml pull caddy
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+### Artifacts directory
+
+The `artifacts/` directory (videos, profile photo, CV PDF, etc.) is
+gitignored. It must exist on the VM before `up -d`, otherwise the chatbot
+will crash at startup trying to read the CV PDF. Sync it from your dev box
+when it changes:
+
+```bash
+rsync -av --exclude README.md ~/code/scheduling/artifacts/ \
+  hugobarros96@35.231.149.237:~/code/web_app_cc/artifacts/
+```
+
+After re-syncing, restart only the web service to pick up the new files:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml restart web
+```
+
 ## Tests
 
 ```bash

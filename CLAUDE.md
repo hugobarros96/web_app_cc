@@ -77,6 +77,89 @@ git push https://PAT@github.com/hugobarros96/web_app_cc.git main
 PAT is defined in .secrets - PAT=
 
 ## Deployment
-- Docker image, docker-compose with Caddy for HTTPS
-- Domain: hugobarros.cc
-- Deployment VM IP: 35.231.149.237
+
+- Docker image + docker-compose, Caddy in front of the `web` container for HTTPS.
+- Domain: hugobarros.cc — VM IP: 35.231.149.237 (user `hugobarros96`).
+- VM is small (2 vCPU, ~1 GB RAM, 10 GB `pd-standard` disk). It is **not** capable
+  of compiling Caddy in a reasonable time (`xcaddy build` took 13+ min, disk I/O
+  bound). The custom Caddy image (stock Caddy + `caddy-ratelimit`) is built once
+  on a fast machine and pulled on the VM.
+
+### Caddy image is hosted on ghcr.io
+
+- Tag: `ghcr.io/hugobarros96/scheduling-caddy:ratelimit` (**public** package).
+- `docker-compose.yml` references it via `image:` only — no `build:` block, so
+  Compose pulls instead of building.
+- `pull_policy: missing` means the VM only re-checks the registry when no local
+  copy exists. Use `docker compose pull caddy` to force a refresh when a new
+  version has been pushed.
+- `caddy.Dockerfile` is kept in the repo as the source of truth for how the image
+  is built. Uses BuildKit cache mounts (`/root/.cache/go-build`, `/go/pkg/mod`)
+  so local rebuilds reuse Go's module + compile caches.
+
+### Routine deploy (code changes only) — runs on the VM
+
+```bash
+ssh hugobarros96@35.231.149.237
+cd ~/code/web_app_cc
+git pull
+docker compose -f docker-compose.yml -f docker-compose.prod.yml down
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=30 web
+```
+
+The `web` image still builds on the VM (`Dockerfile`, ~1–2 min with cache).
+Caddy is just pulled from ghcr.io.
+
+### Updating the Caddy image — runs on the laptop, not the VM
+
+Only needed when `caddy.Dockerfile` actually changes (e.g. bumping the plugin,
+adding another `--with`):
+
+```bash
+# Auth (one-time; PAT from .secrets, scope write:packages)
+PAT=$(grep -E '^PAT=' .secrets | cut -d= -f2-)
+echo "$PAT" | docker login ghcr.io -u hugobarros96 --password-stdin
+
+# Build + push (~1 min total on a laptop)
+docker build -f caddy.Dockerfile \
+  -t ghcr.io/hugobarros96/scheduling-caddy:ratelimit \
+  --platform linux/amd64 .
+docker push ghcr.io/hugobarros96/scheduling-caddy:ratelimit
+```
+
+Then on the VM:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml pull caddy
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+### artifacts/ on the VM
+
+`artifacts/` is gitignored. Without it the web container crashes at startup
+(`mycompanioncv` reads the CV PDF at import time). Sync from the dev box:
+
+```bash
+rsync -av --exclude README.md ~/code/scheduling/artifacts/ \
+  hugobarros96@35.231.149.237:~/code/web_app_cc/artifacts/
+docker compose -f docker-compose.yml -f docker-compose.prod.yml restart web
+```
+
+### Disk hygiene on the VM
+
+The 10 GB disk fills quickly with docker layers and build cache. If a build
+fails on disk space, reclaim with:
+
+```bash
+docker builder prune -a -f    # build cache (often the biggest culprit)
+docker container prune -f
+docker image prune -f
+docker network prune -f
+df -h /
+```
+
+Don't run `docker system prune -a` casually — it would delete the cached
+caddy image and force a re-pull (cheap now since it's on ghcr.io) and the
+`web_app_cc-web` image (forces a full rebuild on next `up -d --build`).
