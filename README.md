@@ -71,24 +71,25 @@ because the disk is I/O bound. The custom Caddy image (stock Caddy + the
 [ghcr.io/hugobarros96/scheduling-caddy](https://github.com/users/hugobarros96/packages/container/scheduling-caddy)
 (public), and pulled on the VM.
 
-### Routine deploy (code changes only)
+### Routine deploy (code changes)
 
 ```bash
 ssh hugobarros96@35.231.149.237
 cd ~/code/web_app_cc
 git pull
 docker compose -f docker-compose.yml -f docker-compose.prod.yml down
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
 ```
 
-The first `up -d` after a fresh clone pulls the caddy image from ghcr.io
-(~88 MB, a few seconds). Subsequent `up -d` reuses the cached caddy image.
-The `web` image still builds from `Dockerfile` on the VM (~1–2 min for code
-changes; uses layer cache for unchanged deps).
+`--build` is **required** when code changes — prod removes the source bind
+mounts, so the container runs whatever's baked into the `web` image. Without
+`--build`, Compose silently reuses the existing image and your changes don't
+ship. The Caddy image still comes from ghcr.io as a fast pull (~5 sec); only
+the python `web` image rebuilds (~1–2 min, layer cache makes deps reuse).
 
-If `web` code didn't change at all, add `--no-build` to make it instant. If
-you want to force a rebuild of the python image, add `--build`.
+If nothing in `portfolio/` or `projects/` changed (e.g. you only updated the
+README), omit `--build` to save a minute.
 
 ### Updating the Caddy image (rare — only when caddy.Dockerfile changes)
 
