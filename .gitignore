@@ -24,4 +24,6 @@ tool_call_results_log.txt
 
 # Private content (videos, CV, profile photo, links) — kept off public GitHub.
 # Populated locally and on the deployment VM; bind-mounted into the container.
-/artifacts/
+# README is kept tracked so people landing on the public repo see what's here.
+/artifacts/*
+!/artifacts/README.md
