@@ -2,18 +2,28 @@
 
 const I18N = {
   en: {
-    portfolioTagline: "Personal projects",
+    hello: 'Hello',
+    bio1: "I'm Hugo, an AI Engineer with <strong>5+ years</strong> of experience at <strong>Ocean Infinity</strong>, bridging research and production. My specialty is computer vision across 2D and 3D data, with a growing focus on GenAI and LLM based systems. My toolkit is Python with PyTorch, C++ and ROS2 for robotics, and the full ML pipeline from data to deployment.",
+    bio2: "I've worked on projects from inception to production, including a few as Product Owner. My experience spans vision based automation (detection, segmentation, 3D reconstruction), robotics, and LLM based products.",
+    bio3: "Background in <strong>Bioengineering</strong> (MSc, FEUP), where I first got hooked on applied ML. Outside work I build small things on the side to learn something new. These two are the latest.",
+    projectsHeading: "Personal projects",
     scheduler: "Scheduler",
-    schedulerDesc: "Optimization-based scheduling app for fitting clients into a trainer's calendar.",
+    schedulerDesc: "Optimization based weekly scheduler for fitting clients into a trainer's calendar. I built an optimizer that finds the best fit given everyone's availabilities, a real world case used by my own gym PT. I later added a LangGraph chat that takes free text and turns it into actions, creating users and availabilities automatically.",
     companion: "Chat with Hugo",
-    companionDesc: "AI chatbot that answers questions about my CV, background and projects.",
+    companionDesc: "Gradio chatbot that answers as me, grounded in my CV and a personal summary, ask about my background, projects, or experience.",
+    contactCta: "If you want to know more about me, contact me at {email} and I'll send you my CV.",
   },
   pt: {
-    portfolioTagline: "Projetos pessoais",
+    hello: 'Olá',
+    bio1: "Sou o Hugo, Engenheiro de IA com <strong>5+ anos</strong> de experiência na <strong>Ocean Infinity</strong>, a fazer a ponte entre investigação e produção. A minha especialidade é visão computacional sobre dados 2D e 3D, com um foco crescente em GenAI e sistemas baseados em LLMs. As minhas ferramentas são Python com PyTorch, C++ e ROS2 para robótica, e o pipeline completo de ML, dos dados ao deployment.",
+    bio2: "Trabalhei em projetos do conceito ao produto, alguns deles como Product Owner. A minha experiência abrange automação baseada em visão (deteção, segmentação, reconstrução 3D), robótica, e produtos baseados em LLMs.",
+    bio3: "Formação em <strong>Bioengenharia</strong> (MSc, FEUP), onde me apaixonei por ML aplicado. Fora do trabalho construo coisas pequenas em paralelo, para aprender algo novo. Estas duas são as mais recentes.",
+    projectsHeading: "Projetos pessoais",
     scheduler: "Agendador",
-    schedulerDesc: "App de agendamento por otimização para encaixar clientes no calendário de um treinador.",
+    schedulerDesc: "Agendador que otimiza os horários dos clientes e do treinador. Construí um otimizador que encontra a melhor solução a partir das disponibilidades de cada um, um caso real usado pelo meu PT do ginásio. Mais tarde adicionei um chat em LangGraph que recebe texto livre e o transforma em ações, criando utilizadores e disponibilidades automaticamente.",
     companion: "Fala com o Hugo",
-    companionDesc: "Chatbot de IA que responde a perguntas sobre o meu CV, percurso e projetos.",
+    companionDesc: "Chatbot em Gradio que responde como se fosse eu, com base no meu CV e num resumo pessoal, pergunta sobre o meu percurso, projetos ou experiência.",
+    contactCta: "Se quiseres saber mais sobre mim, contacta-me para {email} e envio-te o meu CV.",
   },
 };
 

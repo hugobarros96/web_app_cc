@@ -5,111 +5,314 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hugo Barros</title>
   <style>
+    :root {
+      --bg: #fbf9f4;
+      --bg-grad: radial-gradient(1200px 600px at 80% -10%, #efe7d6 0%, transparent 60%),
+                 radial-gradient(900px 500px at -10% 20%, #e6e9f7 0%, transparent 55%),
+                 #fbf9f4;
+      --surface: #ffffff;
+      --border: #ebe6dc;
+      --text: #1f1d1a;
+      --muted: #6b6357;
+      --accent: #b8732b;       /* warm amber */
+      --accent-soft: #f6e7d2;
+      --link: #2d4a8a;         /* deep ink-blue */
+      --link-hover: #b8732b;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #f5f5f5;
-      color: #1a1a1a;
-      min-height: 100vh;
+      background: var(--bg-grad);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 0 1.5rem 5rem;
+      -webkit-font-smoothing: antialiased;
+    }
+    .container { max-width: 880px; margin: 0 auto; }
+
+    /* Header */
+    .site-header {
       display: flex;
       align-items: center;
-      justify-content: center;
-      padding: 2rem;
+      justify-content: space-between;
+      gap: 1.5rem;
+      padding: 1.25rem 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 3rem;
+      flex-wrap: wrap;
     }
-    .landing {
-      text-align: center;
-      max-width: 720px;
-      width: 100%;
+    .site-name {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -0.01em;
     }
-    .landing h1 {
-      font-size: 2.25rem;
-      margin-bottom: 0.5rem;
-      font-weight: 600;
+    .site-name:hover { color: var(--accent); }
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      font-size: 0.92rem;
     }
-    .landing p.tagline {
-      color: #6b7280;
-      margin-bottom: 2.5rem;
+    .header-nav a {
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .header-nav a:hover { color: var(--accent); }
+
+    /* Intro */
+    .intro {
+      margin-bottom: 4rem;
+      margin-top: 1rem;
+    }
+    .intro::after {
+      content: "";
+      display: block;
+      clear: both;
+    }
+    .intro-text { min-width: 0; }
+    .intro-photo {
+      float: right;
+      width: 240px;
+      height: 240px;
+      border-radius: 50%;
+      object-fit: cover;
+      shape-outside: circle(50%);
+      shape-margin: 1.25rem;
+      margin: 0.25rem 0 1rem 1.5rem;
+      box-shadow: 0 6px 28px rgba(31, 29, 26, 0.1);
+      border: 4px solid var(--surface);
+    }
+    .intro h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.1rem;
+    }
+    .intro h1 .wave { display: inline-block; transform-origin: 70% 70%; }
+    .intro p {
+      color: var(--text);
+      font-size: 1.05rem;
+      margin-bottom: 1rem;
+      text-align: justify;
+      hyphens: auto;
+    }
+    .intro p.muted { color: var(--muted); }
+    .intro strong { font-weight: 600; color: var(--text); }
+    /* Projects */
+    .projects-heading {
+      font-size: 1.85rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      margin-bottom: 1.5rem;
     }
     .projects {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+      position: relative;
     }
     .project-card {
-      display: block;
-      padding: 1.5rem;
-      background: #fff;
-      border: 1px solid #e5e7eb;
-      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
       text-decoration: none;
       color: inherit;
-      transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+      position: relative;
+      z-index: 1;
+      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+                  box-shadow 0.3s ease,
+                  border-color 0.2s;
     }
     .project-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-      border-color: #6366f1;
+      transform: scale(1.7);
+      z-index: 5;
+      box-shadow: 0 24px 60px rgba(31, 29, 26, 0.22);
+      border-color: var(--accent);
     }
+    .project-card video {
+      width: 100%;
+      display: block;
+      background: #000;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+    }
+    .project-card .body { padding: 1.1rem 1.25rem 1.35rem; }
     .project-card h2 {
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       font-weight: 600;
-      margin-bottom: 0.5rem;
-      color: #6366f1;
+      margin-bottom: 0.45rem;
+      color: var(--text);
     }
     .project-card p {
-      color: #4b5563;
-      font-size: 0.95rem;
-      line-height: 1.4;
+      color: var(--muted);
+      font-size: 0.93rem;
+      line-height: 1.5;
     }
+
+    /* Lang toggle */
     .lang-toggle {
-      position: fixed;
-      top: 10px;
-      right: 10px;
       display: flex;
-      gap: 0;
-      border-radius: 6px;
+      border-radius: 8px;
       overflow: hidden;
-      border: 1px solid #d1d5db;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border: 1px solid var(--border);
+      background: var(--surface);
     }
     .lang-btn {
-      padding: 4px 10px;
+      padding: 5px 11px;
       border: none;
-      background: #fff;
+      background: var(--surface);
       cursor: pointer;
       font-size: 12px;
       font-weight: 600;
-      color: #6b7280;
+      color: var(--muted);
       transition: background 0.15s, color 0.15s;
     }
-    .lang-btn:not(:last-child) { border-right: 1px solid #d1d5db; }
-    .lang-btn.active { background: #6366f1; color: #fff; }
-    .lang-btn:hover:not(.active) { background: #f3f4f6; }
+    .lang-btn:not(:last-child) { border-right: 1px solid var(--border); }
+    .lang-btn.active { background: var(--accent); color: #fff; }
+    .lang-btn:hover:not(.active) { background: var(--accent-soft); }
+
+    /* Contact CTA */
+    .contact-cta {
+      margin-top: 3rem;
+      padding: 1.25rem 1.5rem;
+      background: var(--accent-soft);
+      border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+      border-radius: 12px;
+      text-align: center;
+      font-size: 1rem;
+      color: var(--text);
+    }
+    .contact-cta a {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .contact-cta a:hover {
+      color: var(--link);
+      border-color: var(--link);
+    }
+
+    /* Footer */
+    .site-footer {
+      margin-top: 5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 720px) {
+      body { padding: 0 1.25rem 3.5rem; }
+      .site-header { gap: 0.75rem; margin-bottom: 2rem; }
+      .header-nav { gap: 1rem; font-size: 0.88rem; }
+      .intro-photo {
+        float: none;
+        shape-outside: none;
+        display: block;
+        width: 160px;
+        height: 160px;
+        margin: 0 0 1.5rem 0;
+      }
+      .intro h1 { font-size: 1.9rem; }
+      .projects-heading { font-size: 1.5rem; }
+      .projects { grid-template-columns: 1fr; }
+    }
   </style>
   <script src="/static/i18n.js"></script>
 </head>
 <body>
-  <div class="landing">
-    <h1>hugobarros.cc</h1>
-    <p class="tagline" id="tagline"></p>
-    <div class="projects">
-      <a class="project-card" href="/scheduler">
-        <h2 id="scheduler-title"></h2>
-        <p id="scheduler-desc"></p>
-      </a>
-      <a class="project-card" href="/mycompanioncv">
-        <h2 id="companion-title"></h2>
-        <p id="companion-desc"></p>
-      </a>
-    </div>
+  <div class="container">
+
+    <header class="site-header">
+      <a class="site-name" href="/">Hugo Barros</a>
+      <nav class="header-nav" id="header-nav"></nav>
+    </header>
+
+    <section class="intro">
+      <img class="intro-photo" src="/artifacts/profile_hugo.jpg" alt="Hugo Barros" />
+      <div class="intro-text">
+        <h1 id="hello"></h1>
+        <p id="bio1"></p>
+        <p id="bio2"></p>
+        <p id="bio3" class="muted"></p>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="projects-heading" id="projects-heading"></h2>
+      <div class="projects">
+        <a class="project-card" href="/scheduler">
+          <video src="/artifacts/scheduling_video_example.mp4" autoplay loop muted playsinline></video>
+          <div class="body">
+            <h2 id="scheduler-title"></h2>
+            <p id="scheduler-desc"></p>
+          </div>
+        </a>
+        <a class="project-card" href="/mycompanioncv">
+          <video src="/artifacts/cvcompanion_example.mp4" autoplay loop muted playsinline></video>
+          <div class="body">
+            <h2 id="companion-title"></h2>
+            <p id="companion-desc"></p>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <section class="contact-cta" id="contact-cta"></section>
+
+    <footer class="site-footer">
+      © 2026 Developed by Hugo Barros
+    </footer>
+
   </div>
+
   <script>
-    document.getElementById("tagline").textContent = t("portfolioTagline");
+    document.getElementById("hello").innerHTML = t("hello");
+    document.getElementById("bio1").innerHTML = t("bio1");
+    document.getElementById("bio2").innerHTML = t("bio2");
+    document.getElementById("bio3").innerHTML = t("bio3");
+    document.getElementById("projects-heading").textContent = t("projectsHeading");
     document.getElementById("scheduler-title").textContent = t("scheduler");
     document.getElementById("scheduler-desc").textContent = t("schedulerDesc");
     document.getElementById("companion-title").textContent = t("companion");
     document.getElementById("companion-desc").textContent = t("companionDesc");
-    createLangToggle(document.body);
+
+    const nav = document.getElementById("header-nav");
+    fetch("/api/links")
+      .then(r => r.json())
+      .then(links => {
+        const items = [
+          { label: "LinkedIn", href: links.linkedin },
+          { label: "GitHub", href: links.github },
+          { label: links.email, href: "mailto:" + links.email },
+        ];
+        for (const { label, href } of items) {
+          if (!href) continue;
+          const a = document.createElement("a");
+          a.href = href;
+          a.textContent = label;
+          if (!href.startsWith("mailto:")) {
+            a.target = "_blank";
+            a.rel = "noopener";
+          }
+          nav.appendChild(a);
+        }
+        createLangToggle(nav);
+
+        const emailLink = `<a href="mailto:${links.email}">${links.email}</a>`;
+        document.getElementById("contact-cta").innerHTML =
+          t("contactCta").replace("{email}", emailLink);
+      });
   </script>
 </body>
 </html>

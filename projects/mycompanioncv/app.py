@@ -1,8 +1,9 @@
 """mycompanioncv — a Gradio chatbot that answers as Hugo Barros.
 
-Loads CV (PDF) + summary + system prompt from ./me/, then exposes a
-Gradio ChatInterface backed by OpenAI tool-calling. Mounted at
-/mycompanioncv by the portfolio app, or run standalone with `python app.py`.
+Loads CV (PDF) + summary + system prompt from artifacts/mycompanioncv/
+(repo root), then exposes a Gradio ChatInterface backed by OpenAI
+tool-calling. Mounted at /mycompanioncv by the portfolio app, or run
+standalone with `python app.py`.
 """
 
 from pathlib import Path
@@ -18,7 +19,7 @@ from pypdf import PdfReader
 
 load_dotenv(override=True)
 
-ME_DIR = Path(__file__).resolve().parent / "me"
+ME_DIR = Path(__file__).resolve().parents[2] / "artifacts" / "mycompanioncv"
 
 
 def push(text: str) -> None:
