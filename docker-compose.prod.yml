@@ -3,6 +3,7 @@
 ##
 ## Differences vs the base (dev) compose:
 ##   - drops the live-mount source volumes (container runs what's baked in the image)
+##   - keeps the artifacts bind-mount (gitignored content lives on the VM, not in the image)
 ##   - drops the public 8000 host port (Caddy on 80/443 is the only public entry point)
 ##   - adds restart policy and log rotation
 ##
@@ -11,7 +12,8 @@
 services:
   web:
     restart: unless-stopped
-    volumes: !reset []
+    volumes: !override
+      - ./artifacts:/app/artifacts
     ports: !reset []
     logging:
       driver: json-file

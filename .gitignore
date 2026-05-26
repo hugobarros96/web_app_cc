@@ -21,3 +21,7 @@ wheels/
 
 # Tool call logs
 tool_call_results_log.txt
+
+# Private content (videos, CV, profile photo, links) — kept off public GitHub.
+# Populated locally and on the deployment VM; bind-mounted into the container.
+/artifacts/

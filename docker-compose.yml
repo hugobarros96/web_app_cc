@@ -8,6 +8,7 @@ services:
     volumes:
       - ./portfolio:/app/portfolio
       - ./projects:/app/projects
+      - ./artifacts:/app/artifacts
     environment:
       - PYTHONDONTWRITEBYTECODE=1
       - OPENAI_API_KEY=${OPENAI_API_KEY}

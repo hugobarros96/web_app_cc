@@ -12,7 +12,13 @@ its own URL prefix.
 │   └── frontend/           # landing.html, i18n.js
 ├── projects/
 │   ├── scheduler/          # self-contained: backend/, frontend/, README
-│   └── mycompanioncv/      # self-contained: app.py, me/, README
+│   └── mycompanioncv/      # self-contained: app.py, README
+├── artifacts/              # gitignored. Landing-page files (videos, profile
+│                           # photo, links.yaml) sit at the root; per-project
+│                           # assets go under artifacts/<project>/
+│                           # (e.g. artifacts/mycompanioncv/ holds CV, summary,
+│                           # system prompt). Bind-mounted into the container
+│                           # in dev and prod.
 ├── tests/                  # pytest suite (scheduler-only at the moment)
 ├── Dockerfile, docker-compose.yml, Caddyfile
 └── pyproject.toml          # all deps in one lockfile
@@ -37,6 +43,10 @@ project's own folder.
    `portfolio/frontend/i18n.js`.
 5. If new Python deps are needed, add them to top-level `pyproject.toml` and
    run `uv lock`.
+6. Any private/runtime assets (data files, CVs, demo videos, etc.) go in
+   `artifacts/<name>/` — that directory is gitignored and bind-mounted into
+   the container. Reference it from the project's `app.py` via
+   `Path(__file__).resolve().parents[2] / "artifacts" / "<name>"`.
 
 ## Scheduler project
 Optimization-based weekly scheduler (FastAPI + FullCalendar + OR-Tools CP-SAT).

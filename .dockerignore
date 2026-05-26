@@ -11,3 +11,4 @@ scheduling.db
 .pytest_cache
 tests/
 scripts/
+artifacts/

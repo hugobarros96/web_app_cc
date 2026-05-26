@@ -21,11 +21,12 @@ Mounted at `/mycompanioncv` in the portfolio app.
 
 ```
 projects/mycompanioncv/
-├── app.py        # Me class + tools + build_demo()
-└── me/
-    ├── Curriculum_Vitae_Hugo.pdf
-    ├── summary.txt          # short personal blurb
-    └── system.txt           # base system prompt
+└── app.py        # Me class + tools + build_demo()
+
+artifacts/mycompanioncv/   # gitignored — populated locally and on the deploy VM
+├── Curriculum_Vitae_Hugo.pdf
+├── summary.txt          # short personal blurb
+└── system.txt           # base system prompt
 ```
 
 `app.py` exposes `build_demo() -> gr.Blocks`; the portfolio app calls this
@@ -54,9 +55,11 @@ uv run python -m projects.mycompanioncv.app
 
 ## Customizing the persona
 
-Edit `me/summary.txt` (free-form blurb) and `me/system.txt` (base system
-prompt). Replace `me/Curriculum_Vitae_Hugo.pdf` with another CV — anything
-the `pypdf` text extractor can read will be appended to the system prompt.
+Edit `artifacts/mycompanioncv/summary.txt` (free-form blurb) and
+`artifacts/mycompanioncv/system.txt` (base system prompt). Replace
+`artifacts/mycompanioncv/Curriculum_Vitae_Hugo.pdf` with another CV —
+anything the `pypdf` text extractor can read will be appended to the system
+prompt. The whole `artifacts/` directory is gitignored.
 
 ## Known quirk
 

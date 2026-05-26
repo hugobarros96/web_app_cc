@@ -20,7 +20,11 @@ as a sub-app on its own URL prefix.
 │   └── frontend/           # landing.html, i18n.js
 ├── projects/
 │   ├── scheduler/          # self-contained: own backend/, frontend/, README
-│   └── mycompanioncv/      # self-contained: own app.py, me/ assets, README
+│   └── mycompanioncv/      # self-contained: own app.py, README (loads from artifacts/mycompanioncv/)
+├── artifacts/              # gitignored. Landing-page files at the root;
+│                           # per-project assets under artifacts/<project>/
+│                           # (e.g. artifacts/mycompanioncv/). Bind-mounted
+│                           # into the container in both dev and prod.
 ├── tests/                  # pytest suite (currently scheduler-only)
 ├── Dockerfile              # builds the whole portfolio
 ├── docker-compose.yml      # web + Caddy reverse proxy
