@@ -56,7 +56,10 @@ deploy_vm() {
   # README.md is tracked in git (arrives via git pull), so exclude it here.
   rsync -az --exclude README.md ./artifacts/ "${VM_USER}@${VM_HOST}:${VM_DIR}/artifacts/"
   echo "▶ Redeploying portfolio on the VM ($VM_HOST)…"
-  ssh "${VM_USER}@${VM_HOST}" "cd ${VM_DIR} && git pull && ${COMPOSE} down && ${COMPOSE} up -d && ${COMPOSE} ps"
+  # --build is REQUIRED in prod: it has no source bind-mount, so the container
+  # runs whatever is baked into the image. Without it, compose reuses the stale
+  # image and code changes never ship.
+  ssh "${VM_USER}@${VM_HOST}" "cd ${VM_DIR} && git pull && ${COMPOSE} down && ${COMPOSE} up -d --build && ${COMPOSE} ps"
   echo "✓ VM redeployed"
 }
 
