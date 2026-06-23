@@ -100,6 +100,12 @@ placeholder if unset, which will refuse to frame).
 - `./deploy.sh` also rsyncs the gitignored `artifacts/` to the VM (the `vm` step)
   so the landing videos / CV / chatbot summary reach production without a manual
   rsync.
+- **Keep-alive:** the HF free Space sleeps after 48h idle (slow cold start + the
+  ML models reload). A VM cron (`~/datadoctor-keepalive.sh`, daily at 06:17 UTC,
+  logs to `~/datadoctor-keepalive.log`) pings the Space so it never sleeps and
+  stays warm. Canonical script is `scripts/keepalive.sh`; the VM runs a
+  standalone copy (outside the repo) to avoid git-pull conflicts. `cron` had to
+  be `apt-get install`ed on the VM (not in the base image).
 
 ## Run locally
 ```bash
