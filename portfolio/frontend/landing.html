@@ -136,7 +136,7 @@
       box-shadow: 0 24px 60px rgba(31, 29, 26, 0.22);
       border-color: var(--accent);
     }
-    .project-card video {
+    .project-card video, .project-card img {
       width: 100%;
       display: block;
       background: #000;
@@ -265,6 +265,13 @@
             <p id="companion-desc"></p>
           </div>
         </a>
+        <a class="project-card" href="/datadoctor">
+          <img src="/artifacts/datadoctor_thumb.png" alt="Data Doctor" />
+          <div class="body">
+            <h2 id="datadoctor-title"></h2>
+            <p id="datadoctor-desc"></p>
+          </div>
+        </a>
       </div>
     </section>
 
@@ -286,6 +293,8 @@
     document.getElementById("scheduler-desc").innerHTML = t("schedulerDesc");
     document.getElementById("companion-title").textContent = t("companion");
     document.getElementById("companion-desc").innerHTML = t("companionDesc");
+    document.getElementById("datadoctor-title").textContent = t("datadoctor");
+    document.getElementById("datadoctor-desc").innerHTML = t("datadoctorDesc");
 
     const nav = document.getElementById("header-nav");
     fetch("/api/links")

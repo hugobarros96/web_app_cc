@@ -1,0 +1,17 @@
+# Streamlit configuration for Data Doctor.
+#
+# fileWatcherType = "none" disables the source-file hot reloader. We need this
+# off because Streamlit's watcher walks every loaded module's __path__ to set up
+# watching, which trips the transformers package's lazy-import system and tries
+# to load `transformers.models.zoedepth.image_processing_zoedepth`. That submodule
+# requires torchvision (~600 MB), which we do not use - sentence-transformers
+# only needs the parent `transformers` package. With the watcher off, the lazy
+# load never fires and the app starts cleanly.
+#
+# Trade-off: you must manually rerun `streamlit run app/streamlit_app.py` after
+# editing the source. Standard pattern for LLM apps using HuggingFace.
+[server]
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false

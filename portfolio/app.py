@@ -5,6 +5,7 @@ Serves the landing page at "/" and mounts each sub-project:
   /mycompanioncv    → projects.mycompanioncv (Gradio)
 """
 
+import os
 from pathlib import Path
 
 import gradio as gr
@@ -52,6 +53,27 @@ async def landing_artifacts(file_path: str):
 async def landing_links():
     with open(LINKS_FILE) as f:
         return JSONResponse(yaml.safe_load(f))
+
+
+DATADOCTOR_URL_DEFAULT = "https://huggingface.co/spaces"  # placeholder until the Space exists
+
+
+@app.get("/datadoctor")
+async def datadoctor():
+    """Full-screen iframe of the Data Doctor Hugging Face Space.
+
+    The live Streamlit + ML app runs on a free HF Space (16 GB RAM); this VM
+    only serves the HTML shell. Set DATADOCTOR_URL to the Space URL once created.
+    """
+    url = os.environ.get("DATADOCTOR_URL", DATADOCTOR_URL_DEFAULT)
+    html = f"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Doctor — Hugo Barros</title>
+<style>html,body{{margin:0;height:100%;overflow:hidden}}
+iframe{{border:0;width:100%;height:100vh;display:block}}</style></head>
+<body><iframe src="{url}" allow="clipboard-write" title="Data Doctor"></iframe></body></html>"""
+    return Response(content=html, media_type="text/html")
 
 
 # Sub-projects

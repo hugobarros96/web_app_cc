@@ -14,7 +14,7 @@ wheels/
 
 # IDE
 .vscode/
-
+docs/
 # Secrets
 .secrets
 .env

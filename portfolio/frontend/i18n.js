@@ -11,6 +11,8 @@ const I18N = {
     schedulerDesc: "Optimization based weekly scheduler for fitting clients into a trainer's calendar. I built an optimizer that finds the best fit given everyone's availabilities, a real world case used by my own gym PT. I later added a <strong>LangGraph</strong> chat that takes free text and turns it into actions, creating users and availabilities automatically.",
     companion: "Chat with Hugo",
     companionDesc: "A chatbot that answers as me, grounded in my CV and a personal summary. Built with the <strong>OpenAI SDK</strong> and served through a Gradio interface, ask it about my background, projects, or experience.",
+    datadoctor: "Data Doctor",
+    datadoctorDesc: "A clinical-analytics assistant (POC). A <strong>Strands</strong> agent routes each question to typed tools — XGBoost outcome predictions, live <strong>pandas</strong> analytics over a 10k-patient dataset, and hybrid <strong>RAG</strong> (FAISS + BM25 with a cross-encoder reranker) over clinical records and medical textbooks — behind input/output guardrails, with MLflow tracing. Not for clinical use.",
     contactCta: "If you want to know more about me, contact me at {email} and I'll send you my CV.",
   },
   pt: {
@@ -23,6 +25,8 @@ const I18N = {
     schedulerDesc: "Agendador que otimiza os horários dos clientes e do treinador. Construí um otimizador que encontra a melhor solução a partir das disponibilidades de cada um, um caso real usado pelo meu PT do ginásio. Mais tarde adicionei um chat em <strong>LangGraph</strong> que recebe texto livre e o transforma em ações, criando utilizadores e disponibilidades automaticamente.",
     companion: "Fala com o Hugo",
     companionDesc: "Um chatbot que responde como se fosse eu, com base no meu CV e num resumo pessoal. Construído com o <strong>OpenAI SDK</strong> e servido através de uma interface Gradio, pergunta sobre o meu percurso, projetos ou experiência.",
+    datadoctor: "Data Doctor",
+    datadoctorDesc: "Um assistente de análise clínica (POC). Um agente <strong>Strands</strong> encaminha cada pergunta para ferramentas tipadas — previsões com XGBoost, análise <strong>pandas</strong> ao vivo sobre um conjunto de 10 mil pacientes, e <strong>RAG</strong> híbrido (FAISS + BM25 com reranker cross-encoder) sobre registos clínicos e manuais de medicina — com guardrails de entrada/saída e tracing em MLflow. Não destinado a uso clínico.",
     contactCta: "Se quiseres saber mais sobre mim, contacta-me para {email} e envio-te o meu CV.",
   },
 };
