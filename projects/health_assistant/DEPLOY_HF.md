@@ -40,6 +40,39 @@ and boots Streamlit on port 8501.
 - Set `DATADOCTOR_URL=https://<USER>-datadoctor.hf.space` in the portfolio repo
   root `.env` (read by `portfolio/app.py`). Until set, `/datadoctor` falls back
   to a placeholder URL.
-- The portfolio passes `DATADOCTOR_URL` through to the `web` container — add it
-  to the `environment:` block in `docker-compose.yml` if it isn't picked up from
-  `.env` automatically.
+- The portfolio passes `DATADOCTOR_URL` through to the `web` container (already
+  wired in `docker-compose.yml`); it's read from the repo-root `.env`.
+
+## Testing locally
+
+The chosen local-test approach: run **only the portfolio** locally and point the
+iframe at the **live HF Space** — fast, no need to build the 2.3 GB image.
+
+```bash
+# from the repo root
+DATADOCTOR_URL=https://hugobarros96-datadoctor.hf.space \
+  uv run uvicorn portfolio.app:app --reload
+# → http://localhost:8000/datadoctor  iframes the live Space
+# → http://localhost:8000/            shows all three project cards
+```
+
+To work on Data Doctor itself locally, use its own source repo
+(`~/code/health_assistant`, `docker compose up app mlflow`) — that's its full
+dev stack with MLflow.
+
+## Routine deploys (`deploy.sh`)
+
+After the one-time Space setup above, deploy everything from your laptop with the
+repo-root script:
+
+```bash
+./deploy.sh          # GitHub push + VM redeploy (portfolio) + HF code sync
+./deploy.sh vm       # only the portfolio (GitHub push + VM redeploy)
+./deploy.sh hf       # only sync Data Doctor code to the HF Space
+```
+
+The `hf` step syncs **code only** — it clones the Space with
+`GIT_LFS_SKIP_SMUDGE=1` (so the 330 MB of artifacts are never re-downloaded),
+rsyncs `projects/health_assistant/` over the top excluding `artifacts/`, and
+pushes only if code changed. Your committed FAISS indices + models on the Space
+are left untouched. Tokens (`PAT`, `HF_TOKEN`) are read from `.secrets`.

@@ -12,7 +12,7 @@ Safety boundary (POC-grade):
 - Captures stdout, the value of the last expression, and any matplotlib figure
   produced via `plt.show()` (or simply leaving a figure on `plt.gcf()`).
 
-Production sandbox: e2b / Modal / gVisor. Documented in ARCHITECTURE.md.
+Production sandbox: e2b / Modal / gVisor.
 """
 from __future__ import annotations
 

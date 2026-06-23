@@ -14,6 +14,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - PUSHOVER_TOKEN=${PUSHOVER_TOKEN}
       - PUSHOVER_USER=${PUSHOVER_USER}
+      # URL of the Data Doctor Hugging Face Space, iframed at /datadoctor.
+      - DATADOCTOR_URL=${DATADOCTOR_URL}
 
   caddy:
     # Built locally via caddy.Dockerfile, then pushed to ghcr.io.

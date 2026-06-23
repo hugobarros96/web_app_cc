@@ -1,8 +1,7 @@
 # CLAUDE.md
 
-Working notes for Claude Code / contributors. User-facing setup is in
-[README.md](README.md); architecture diagrams and the AWS deployment variants
-are in [ARCHITECTURE.md](ARCHITECTURE.md).
+Working notes for Claude Code / contributors. User-facing overview, the
+architecture diagram, and setup are in [README.md](README.md).
 
 ## What this is
 

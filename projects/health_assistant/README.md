@@ -6,67 +6,29 @@ colorTo: green
 sdk: docker
 app_port: 8501
 pinned: false
-short_description: Clinical-analytics assistant (POC). Not for clinical use.
+short_description: Clinical-analytics assistant demo. Not for clinical use.
 ---
 
 # Data Doctor 🩺
 
-POC clinical-analytics assistant.
-Predicts patient outcomes, queries the dataset, and answers questions grounded
-in clinical documents + medical textbooks.
+A clinical-analytics assistant: a Streamlit chat UI over an LLM **agent** that
+predicts patient outcomes, runs live analytics over a 10,000-patient dataset,
+and answers questions grounded in clinical records and medical textbooks. The
+agent reads each question, picks the right tool, runs it, and explains the
+result — all behind input/output safety filters and with full request tracing.
 
-**Status:** POC. Not for clinical use.
-
----
-
-## Quick start
-
-### Option A - Docker (one-command demo)
-refer to .env.example to configure your .env
-```bash
-cp .env.example .env                  # configure your env
-docker compose --profile setup up bootstrap    # one-time: build the FAISS indices (models ship pre-trained)
-docker compose up app mlflow                   # serves Streamlit on :8501, MLflow on :5000
-```
-
-- **Streamlit UI** at http://localhost:8501
-- **MLflow UI** at http://localhost:5000 (Chat Sessions tab groups traces by Streamlit session ID)
-
-### Option B - Local Python (faster iteration)
-
-```bash
-uv venv && source .venv/bin/activate
-uv pip install -e ".[dev]"
-cp .env.example .env  # configure your env
-
-# One-time: build the FAISS indices (~5-10 min; models ship pre-trained in the repo)
-python -m health_assistant.scripts.bootstrap
-
-# (Optional) retrain the models - not needed, they're committed:
-#   python -m health_assistant.models.train_copd --n-trials 30
-#   python -m health_assistant.models.train_alt  --n-trials 30
-
-# Two terminals:
-streamlit run app/streamlit_app.py
-mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
-```
-
-### No OpenAI key? Use AWS Bedrock
-
-The LLM is the **only** component that needs a cloud key — embeddings (MiniLM),
-the reranker (bge), the XGBoost models, and `python_analytics` all run locally.
-To replace openai with AWS refer to .env.example to build your .env
-
-Then run exactly as above (`streamlit run …` or `docker compose up app mlflow`).
+> Demo / portfolio project on synthetic data — **not for clinical use.**
 
 ---
 
 ## What it does
 
-A Streamlit chat UI fronts a **Strands agent** with **yped tools**, wrapped by
-input/output guardrails and session-scoped memory; the agent routes each turn to the
-right tool. Full reference - tools, RAG + cross-encoder reranker, input handling,
-guardrails, active learning, observability.
+A **Strands agent** (running on OpenAI, swappable to AWS Bedrock with one env
+var) sits behind the chat box. Each turn flows through an input guardrail, the
+agent picks one of seven typed tools, the tool runs, and an output guardrail
+checks the result before it reaches the UI. Session memory (the last cohort,
+patient, and prediction) is carried across turns so follow-ups like *"what if
+their BMI were 30?"* resolve implicitly.
 
 | Question shape | Tool |
 |---|---|
@@ -78,38 +40,177 @@ guardrails, active learning, observability.
 | Name and remember a cohort across turns | `save_cohort` |
 | Current/recent medical info (sidebar toggle) | `web_search` |
 
+- **`predict_patient_outcomes`** — XGBoost models for COPD (4-class, GOLD A–D)
+  and ALT (continuous, with an 80% prediction interval). Uses an ask-back
+  protocol: it first lists the missing features (ordered by SHAP importance),
+  waits for the user, then predicts. COPD scores are presented as relative
+  ranks, never as calibrated probabilities.
+- **`python_analytics`** — the agent writes real pandas/matplotlib code that
+  runs in a sandbox over the patient dataframe; charts are rendered inline.
+- **`search_clinical_documents` / `search_medical_knowledge`** — two hybrid-RAG
+  indices, one over 1,050 clinical encounter records, one over the
+  MedRAG/textbooks corpus (~125k chunks of Harrison's, Robbins, Nelson, etc.).
+- **`compare_patients`** — side-by-side feature table + predictions + a bar
+  chart for 2–5 patient IDs.
+- **`save_cohort`** — names and remembers a cohort from a prior analytics query.
+- **`web_search`** — optional, gated by a sidebar toggle; restricted to a
+  medical-domain allowlist (CDC, NIH, FDA, WHO, PubMed, Mayo, NEJM, …).
+
 ### Input handling
 
-Multiple questions pasted in one message are split into separate turns; the 📎 uploader
-takes up to 3 PDFs/images per turn (digital-PDF text inlined; images are OCR-by-LLM only,
-never clinical-image interpretation). Details in [CLAUDE.md](CLAUDE.md).
+Multiple questions pasted in one message are split into separate turns, each
+routed independently. A 📎 uploader takes up to 3 PDFs/images per turn: digital
+PDFs are parsed and inlined; images are treated as OCR-by-LLM only (text from
+lab printouts or forms) and never as clinical-image interpretation.
 
 ### Active learning
 
-Each prediction has a 🩺 feedback widget; eligible corrections (no imputed features + a
-real label) accumulate and trigger a gated background retrain that promotes a model only
-if it beats the holdout baseline. Full pipeline in [CLAUDE.md](CLAUDE.md).
+Every prediction shows a 🩺 *"Was this prediction correct?"* widget. Eligible
+corrections (no imputed features + a real label) accumulate and, past a
+threshold, trigger a gated background retrain that only promotes a new model if
+it beats the holdout baseline — otherwise production is left untouched.
 
 ### Guardrails
 
-Deterministic input/output filters (PII, injection, scope, disclaimer injection) at the
-agent boundary, logged to `artifacts/logs/guardrails.jsonl`, each mapping 1:1 to a Bedrock
-Guardrails policy for production. Mapping table in [CLAUDE.md](CLAUDE.md).
+Deterministic input/output filters run at the agent boundary: PII redaction,
+prompt-injection blocking, a scope check, and disclaimer injection on
+prediction / RAG / web answers. Every decision is logged to a JSONL audit file.
 
 ### Observability
 
-MLflow is the single backend for both model-training tracking (Optuna trials, SHAP) and
-agent/LLM tracing (`@mlflow.trace` per tool + per-turn `chat_turn` spans grouped by
-session). See [ARCHITECTURE.md](ARCHITECTURE.md).
+MLflow is the single backend for both model-training history (Optuna trials,
+SHAP) and agent tracing. Each turn is a `chat_turn` span with the OpenAI calls
+and every tool nested underneath, grouped by session:
+
+```
+[session abc12345]
+  ├── chat_turn 1
+  │     ├── OpenAI call
+  │     ├── search_medical_knowledge
+  │     │     ├── FAISS + BM25 retrieval
+  │     │     └── reranker.rerank (bge-reranker-base)
+  │     └── OpenAI call (final response)
+  ├── chat_turn 2
+  │     ├── OpenAI call
+  │     ├── predict_patient_outcomes
+  │     └── OpenAI call (final response)
+  └── ...
+```
 
 ---
 
-## EDA findings
+## How it works
 
-The dataset is synthetic: COPD class has no learnable signal (best macro-F1 ≈ 0.25, the
-4-class baseline) and ALT ≈ BMI (r = 0.9998), which the deployed regressor leans on to
-reach R² ≈ 0.999. Full analysis — and the "extract signal where it exists, stay honest
-where it doesn't" story — is in **[notebooks/01_eda.ipynb](notebooks/01_eda.ipynb)**.
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Streamlit Chat UI  (app/streamlit_app.py)                              │
+│  - session_id persisted in URL ?sid=...                                 │
+│  - sidebar: web-search toggle | active-learning panel | clear           │
+│  - 📎 paperclip uploader (PDF/image, one-shot per turn)                 │
+│  - 🩺 inline feedback widgets under every prediction                    │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     │
+                          ┌──────────▼──────────┐
+                          │   Input Guardrail   │  PII redact, injection
+                          │  (deterministic)    │  block, cosine scope
+                          └──────────┬──────────┘
+                                     │
+                  ┌──────────────────▼────────────────────────┐
+                  │  Strands Agent (per session_id, OpenAI)   │
+                  │  - decision-tree system prompt            │
+                  │  - SessionContext injected as prefix      │
+                  │    (last cohort, patient, prediction,     │
+                  │     named cohorts, web flag)              │
+                  │  - attachments threaded as content blocks │
+                  │  - 7 typed tools                          │
+                  │  - chat_turn parent trace per turn        │
+                  └──┬─────┬───── ┬─────┬─────┬─────┬─────┬───┘
+                     │     │      │     │     │     │     │
+            ┌────────▼┐ ┌──▼────┐ │  ┌──▼────┐ ┌──▼──┐ ┌▼────┐ ┌▼──────┐
+            │predict_ │ │python_│ │  │compare│ │save_│ │web_ │ │search_│
+            │patient_ │ │analyt.│ │  │_patien│ │cohort│ │searc│ │* (×2) │
+            │outcomes │ │(sandb)│ │  │  ts   │ │     │ │  h  │ │       │
+            └────┬────┘ └───┬───┘ │  └───┬───┘ └──┬──┘ └──┬──┘ └──┬────┘
+                 │          │     │      │        │       │       │
+                 │  df ◄────┘     │      │        │  allowlist  ┌─▼──────────────┐
+            ┌────▼────────┐       │      │        │   search    │ Hybrid retriever│
+            │ XGBoost     │       │      │        │             │ FAISS + BM25    │
+            │ COPD + ALT  │       │      │        │             │ + RRF (top-20)  │
+            │ + SHAP      │       │      │        │             │       ↓         │
+            │ + quantile  │       │      │        │             │ bge-reranker →  │
+            │   interval  │       │      │        │             │ top-k           │
+            └─────┬───────┘       │      │        │             └─────────────────┘
+                  │               │      │        │
+                  ▼  ▼  ▼  ▼  ▼  ▼ ▼  ▼  ▼  ▼  ▼ ▼
+                          ┌─────────────────┐
+                          │ Output Guardrail│  PII rescan, disclaimer
+                          │ (deterministic) │  injection, citation check
+                          └────────┬────────┘
+                                   ▼
+                             UI response
+```
+
+Each turn calls `agent.run(agent, message, history, session_id, attachments)`,
+which returns `{text, tools_used, redactions, flags, figures}`. Session memory
+is injected as an ephemeral prompt prefix and scrubbed from stored history each
+turn, so only the current turn carries current state. The web-search tool is
+added to or removed from the agent's tool registry per turn based on the sidebar
+toggle, so when it's off the model literally cannot call it.
+
+### RAG + cross-encoder reranker
+
+Both RAG tools take a 20-doc shortlist per retriever, fuse dense (FAISS) and
+sparse (BM25) results with Reciprocal Rank Fusion, then rerank the fused
+shortlist with `BAAI/bge-reranker-base` before returning the top-k. Embeddings
+are `sentence-transformers/all-MiniLM-L6-v2`. Documents are chunked at 800
+tokens / 100 overlap. Both the embedder and the reranker run locally on CPU.
+
+### Models & data
+
+- **15 features** — numeric (age, BMI, medication count, days hospitalized, lab
+  glucose, albumin/globulin ratio), binary (readmitted, urban), categorical
+  (sex, smoker, diagnosis code), and ordered categorical (exercise frequency,
+  diet quality, income bracket, education level).
+- **COPD**: XGBoost `multi:softprob` tuned for macro-F1. **ALT**: three XGBoost
+  heads (mean + q10/q90 quantiles) giving an 80% interval. Models are committed,
+  so predictions work on a fresh clone with no retraining.
+- The dataset is **synthetic**. COPD has no learnable signal (macro-F1 ≈ the
+  4-class baseline) and ALT tracks BMI almost perfectly — which is why COPD
+  outputs are framed as scores, not probabilities, and the app is a
+  demonstration of the system, not a clinical model.
+
+---
+
+## Tech stack
+
+- **Agent:** Strands Agents SDK, OpenAI `gpt-4o-mini` (swappable to AWS Bedrock)
+- **Models:** XGBoost, SHAP, scikit-learn, Optuna
+- **RAG:** sentence-transformers (MiniLM), `bge-reranker-base`, FAISS, BM25,
+  LangChain
+- **UI:** Streamlit
+- **Analytics:** pandas, matplotlib (sandboxed)
+- **Observability:** MLflow
+
+---
+
+## Quick start
+
+**Use it:** the app is deployed as a Hugging Face Space and embedded on the
+portfolio site at **[hugobarros.cc/datadoctor](https://hugobarros.cc/datadoctor)**.
+Try a prompt like *"How many smokers are in the dataset?"* or *"Predict COPD for
+a 55-year-old male with BMI 27.5, 3 medications, no exercise, poor diet."*
+
+**Run it locally (Docker):**
+
+```bash
+docker build -t datadoctor .
+docker run --rm -p 8501:8501 -e OPENAI_API_KEY=sk-... datadoctor
+# → http://localhost:8501
+```
+
+The image bakes in the embedding + reranker models; the FAISS indices and
+trained models ship with the repo under `artifacts/`. The only thing you need to
+supply is `OPENAI_API_KEY` (optionally `SERPA_API_KEY` to enable web search).
 
 ---
 
@@ -117,84 +218,17 @@ where it doesn't" story — is in **[notebooks/01_eda.ipynb](notebooks/01_eda.ip
 
 ```
 src/health_assistant/
-  agent/         # Strands factory + system prompt + model provider + session_state + chat_turn wrapper
-  tools/         # 7 typed tools (predict, python_analytics, search_*, compare_patients, save_cohort, web_search)
-  models/        # train_copd, train_alt, predict, retrain (feedback loop), feature_schema
-  rag/           # chunking, clinical + MedRAG ingestion, hybrid retriever, cross-encoder reranker
-  attachments/   # PDF reader (pypdf) + image loader (Pillow) + Attachment dataclass
+  agent/         # Strands factory + system prompt + model provider + session state
+  tools/         # 7 typed tools
+  models/        # train/predict + the feedback-retrain loop + feature schema
+  rag/           # chunking, ingestion, hybrid retriever, cross-encoder reranker
+  attachments/   # PDF reader + image loader
   feedback/      # feedback log + eligibility counter + validation gate
-  guardrails/    # input/output filters + policies + JSONL logger
+  guardrails/    # input/output filters + JSONL logger
   analytics/     # sandboxed exec
   observability/ # MLflow setup
-  scripts/       # bootstrap orchestrator
-app/             # Streamlit UI (only UI-aware module)
-notebooks/       # 01_eda.ipynb (EDA + findings)
-tests/           # focused suite: model inference, sandbox, agent pipeline, AL pipeline, reranker, attachments
-artifacts/       # models/ committed; FAISS indices, SHAP plots, logs, mlflow, feedback/ are gitignored
-data/            # patient_data.csv + documents_data/ markdowns
+  scripts/       # bootstrap (builds the FAISS indices)
+app/             # Streamlit UI
+data/            # patient_data.csv + clinical document markdowns
+artifacts/       # trained models + FAISS indices
 ```
-
----
-
-## Design decisions worth calling out
-
-| # | Decision | Why |
-|---|---|---|
-| D1 | Strands SDK as the agent framework, OpenAI or Bedrock as the runtime | Strands is model-agnostic; swap the LLM with one env var (`MODEL_PROVIDER`). |
-| D2 | One tool that predicts both COPD and ALT, returning both every time | Same feature schema. |
-| D3 | One Python tool that handles both compute and charts (no SQL tool) | Cleaner agent + more impressive trace. LLM writes real pandas code. |
-| D4 | Two hybrid (dense+sparse+RRF) RAG indices, not one | Clinical-record questions and general-medicine questions need different sources. The agent reasons about which to call. |
-| D5 | XGBoost over LightGBM | User preference; equivalent capability. |
-| D6 | No isotonic calibration | EDA showed COPD has no signal - calibration is cosmetic. The system prompt explicitly tells the LLM the scores are softmax outputs, not probabilities. |
-| D7 | MLflow as the single observability backend | MLflow 3.x covers experiments AND traces AND chat sessions in one server. Simpler than Phoenix/Langfuse/LangSmith. |
-| D8 | Mock Bedrock KB + Guardrails locally; document the AWS pieces | Real Bedrock KB has a ~$170/mo OpenSearch Serverless floor; mocking avoids spend while preserving the full architectural story. |
-
----
-
-## Testing
-
-```bash
-pytest -q --ignore=tests/test_agent_smoke.py          # offline suite, ~20 sec
-OPENAI_API_KEY=... pytest tests/test_agent_smoke.py   # live tests, ~55s
-```
-
-The active-learning pipeline test trains a real model end-to-end with `dry_run=True`
-(production files untouched);.
-
----
-
-## With another week
-
-A few priorities (full list in [v2 spec §13](docs/superpowers/specs/2026-05-31-data-doctor-v2-design.md)):
-
-1. **Real Bedrock Knowledge Base integration** - swap local FAISS for managed KB,
-   with a recall@k eval on a held-out Q/A set, a SageMaker endpoint, and
-   medical-domain embeddings (`PubMedBERT` / `BGE-M3`) over MiniLM.
-2. **Per-user auth** - login (Cognito or similar) so cohorts, attachments, and
-   history persist per user instead of dying with the browser session.
-3. **Smarter routing as tools grow** - a two-stage router (a cheap classifier
-   picks the bucket, a focused call executes) and, past ~15 tools, a split into
-   router + specialists (analyst / clinical / predictor). Criteria in `ARCHITECTURE.md`.
-4. **Model-ops** - a one-click UI rollback for promoted models (the
-   `artifacts/models/archive/<ts>/` snapshots already exist) and a published
-   reranker precision@k benchmark vs the FAISS+BM25 baseline.
-5. **Richer session memory** - move beyond the single last-cohort / last-patient /
-   last-prediction snapshot to a structured ledger that survives the sliding
-   window: retain salient facts per turn (e.g. each patient the user *describes*
-   and its attributes/medications, not just the last one *predicted*) plus any
-   open/unanswered questions, so long sessions don't lose context the window
-   trims. Likely a `SummarizingConversationManager` over a small entity store.
-
-Other ideas, briefly: an LLM-as-judge critic that adversarially checks tool outputs namely prediction's disclaimer / SHAP / numbers before display; scanned-PDF OCR (Tesseract or AWS Textract).
-
----
-
-## Citations
-
-- Xiong, G., Jin, Q., Lu, Z., & Zhang, A. (2024). *Benchmarking
-  Retrieval-Augmented Generation for Medicine.* arXiv:2402.13178. - Source
-  for the `MedRAG/textbooks` corpus.
-- Xiao, S., Liu, Z., Zhang, P., & Muennighoff, N. (2023). *C-Pack: Packed
-  Resources For General Chinese Embeddings.* arXiv:2309.07597. - Source for
-  `BAAI/bge-reranker-base`.
----
