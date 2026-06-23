@@ -110,8 +110,8 @@
       margin-bottom: 1.5rem;
     }
     .projects {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      display: flex;
+      flex-direction: column;
       gap: 1.5rem;
       position: relative;
     }
@@ -126,14 +126,14 @@
       color: inherit;
       position: relative;
       z-index: 1;
-      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+      transition: transform 0.25s ease,
                   box-shadow 0.3s ease,
                   border-color 0.2s;
     }
     .project-card:hover {
-      transform: scale(1.7);
+      transform: scale(1.2);
       z-index: 5;
-      box-shadow: 0 24px 60px rgba(31, 29, 26, 0.22);
+      box-shadow: 0 22px 50px rgba(31, 29, 26, 0.2);
       border-color: var(--accent);
     }
     .project-card video, .project-card img {
@@ -143,7 +143,7 @@
       aspect-ratio: 16 / 9;
       object-fit: cover;
     }
-    .project-card .body { padding: 1.1rem 1.25rem 1.35rem; }
+    .project-card .body { padding: 1.4rem 1.6rem 1.6rem; }
     .project-card h2 {
       font-size: 1.1rem;
       font-weight: 600;
@@ -155,6 +155,20 @@
       font-size: 0.93rem;
       line-height: 1.5;
     }
+    .card-media { display: block; text-decoration: none; }
+    .card-title { display: block; text-decoration: none; color: inherit; }
+    .card-title:hover h2 { color: var(--accent); }
+    .card-readme {
+      display: inline-block;
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--link);
+      text-decoration: none;
+      border-bottom: 1px solid color-mix(in srgb, var(--link) 35%, transparent);
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .card-readme:hover { color: var(--accent); border-color: var(--accent); }
 
     /* Lang toggle */
     .lang-toggle {
@@ -225,7 +239,6 @@
       }
       .intro h1 { font-size: 1.9rem; }
       .projects-heading { font-size: 1.5rem; }
-      .projects { grid-template-columns: 1fr; }
     }
   </style>
   <script src="/static/i18n.js"></script>
@@ -251,27 +264,39 @@
     <section>
       <h2 class="projects-heading" id="projects-heading"></h2>
       <div class="projects">
-        <a class="project-card" href="/scheduler">
-          <video src="/artifacts/scheduling_video_example.mp4" autoplay loop muted playsinline></video>
+        <div class="project-card">
+          <a class="card-media" href="/scheduler">
+            <video src="/artifacts/scheduling_video_example.mp4" autoplay loop muted playsinline></video>
+          </a>
           <div class="body">
-            <h2 id="scheduler-title"></h2>
+            <a class="card-title" href="/scheduler"><h2 id="scheduler-title"></h2></a>
             <p id="scheduler-desc"></p>
+            <a class="card-readme" id="scheduler-readme" target="_blank" rel="noopener"
+               href="https://github.com/hugobarros96/web_app_cc/blob/main/projects/scheduler/README.md"></a>
           </div>
-        </a>
-        <a class="project-card" href="/mycompanioncv">
-          <video src="/artifacts/cvcompanion_example.mp4" autoplay loop muted playsinline></video>
+        </div>
+        <div class="project-card">
+          <a class="card-media" href="/mycompanioncv">
+            <video src="/artifacts/cvcompanion_example.mp4" autoplay loop muted playsinline></video>
+          </a>
           <div class="body">
-            <h2 id="companion-title"></h2>
+            <a class="card-title" href="/mycompanioncv"><h2 id="companion-title"></h2></a>
             <p id="companion-desc"></p>
+            <a class="card-readme" id="companion-readme" target="_blank" rel="noopener"
+               href="https://github.com/hugobarros96/web_app_cc/blob/main/projects/mycompanioncv/README.md"></a>
           </div>
-        </a>
-        <a class="project-card" href="/datadoctor">
-          <img src="/artifacts/datadoctor_thumb.png" alt="Data Doctor" />
+        </div>
+        <div class="project-card">
+          <a class="card-media" href="/datadoctor">
+            <video src="/artifacts/datadoctor_video_example.mp4" autoplay loop muted playsinline></video>
+          </a>
           <div class="body">
-            <h2 id="datadoctor-title"></h2>
+            <a class="card-title" href="/datadoctor"><h2 id="datadoctor-title"></h2></a>
             <p id="datadoctor-desc"></p>
+            <a class="card-readme" id="datadoctor-readme" target="_blank" rel="noopener"
+               href="https://github.com/hugobarros96/web_app_cc/blob/main/projects/health_assistant/README.md"></a>
           </div>
-        </a>
+        </div>
       </div>
     </section>
 
@@ -295,6 +320,9 @@
     document.getElementById("companion-desc").innerHTML = t("companionDesc");
     document.getElementById("datadoctor-title").textContent = t("datadoctor");
     document.getElementById("datadoctor-desc").innerHTML = t("datadoctorDesc");
+    for (const id of ["scheduler-readme", "companion-readme", "datadoctor-readme"]) {
+      document.getElementById(id).textContent = t("readmeLink");
+    }
 
     const nav = document.getElementById("header-nav");
     fetch("/api/links")

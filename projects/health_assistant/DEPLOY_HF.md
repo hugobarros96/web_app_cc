@@ -13,16 +13,9 @@ git clone https://huggingface.co/spaces/<USER>/datadoctor /tmp/datadoctor-space
 cd /tmp/datadoctor-space
 git lfs install
 
-# Copy the project files (code, docs, Dockerfile, .streamlit, data, .gitattributes)
-rsync -av --exclude artifacts /home/hbarros/code/scheduling/projects/health_assistant/ ./
-
-# Copy the runtime artifacts from the SOURCE repo (FAISS indices + trained models)
-mkdir -p artifacts
-rsync -av \
-  /home/hbarros/code/health_assistant/artifacts/clinical_faiss_index \
-  /home/hbarros/code/health_assistant/artifacts/medical_faiss_index \
-  /home/hbarros/code/health_assistant/artifacts/models \
-  ./artifacts/
+# Copy the whole project, including the gitignored artifacts/ (FAISS indices +
+# models). It is all self-contained under projects/health_assistant/.
+rsync -av --exclude '.git' /home/hbarros/code/scheduling/projects/health_assistant/ ./
 
 git add -A
 git commit -m "Deploy Data Doctor"
@@ -56,9 +49,9 @@ DATADOCTOR_URL=https://hugobarros96-datadoctor.hf.space \
 # → http://localhost:8000/            shows all three project cards
 ```
 
-To work on Data Doctor itself locally, use its own source repo
-(`~/code/health_assistant`, `docker compose up app mlflow`) — that's its full
-dev stack with MLflow.
+To run Data Doctor itself locally, build its image from this folder
+(`docker build -t datadoctor . && docker run --rm -p 8501:8501 -e OPENAI_API_KEY=sk-... datadoctor`).
+The FAISS indices + models live here under `artifacts/`, so it is self-contained.
 
 ## Routine deploys (`deploy.sh`)
 
@@ -66,13 +59,20 @@ After the one-time Space setup above, deploy everything from your laptop with th
 repo-root script:
 
 ```bash
-./deploy.sh          # GitHub push + VM redeploy (portfolio) + HF code sync
-./deploy.sh vm       # only the portfolio (GitHub push + VM redeploy)
-./deploy.sh hf       # only sync Data Doctor code to the HF Space
+./deploy.sh          # GitHub push + VM redeploy (portfolio, with artifacts) + HF deploy
+./deploy.sh vm       # only the portfolio (GitHub push + artifacts rsync + VM redeploy)
+./deploy.sh hf       # only deploy Data Doctor to the HF Space
 ```
 
-The `hf` step syncs **code only** — it clones the Space with
-`GIT_LFS_SKIP_SMUDGE=1` (so the 330 MB of artifacts are never re-downloaded),
-rsyncs `projects/health_assistant/` over the top excluding `artifacts/`, and
-pushes only if code changed. Your committed FAISS indices + models on the Space
-are left untouched. Tokens (`PAT`, `HF_TOKEN`) are read from `.secrets`.
+The `hf` step is **self-contained to this repo** and pushes everything the Space
+needs: it clones with `GIT_LFS_SKIP_SMUDGE=1` (so the ~330 MB of artifacts are
+never re-downloaded), then mirrors all of `projects/health_assistant/` (code,
+data, and the gitignored `artifacts/` FAISS indices + models) into the Space.
+Unchanged artifacts hash to the same git-LFS pointer, so they are not
+re-committed or re-uploaded; only changed files are pushed. If your local
+`artifacts/` is empty, the step preserves whatever artifacts are already on the
+Space rather than deleting them. Tokens (`PAT`, `HF_TOKEN`) are read from
+`.secrets`.
+
+After this, the **one-time** clone/copy in step 2 above is only needed for the
+very first deploy (to create the Space); routine updates are just `./deploy.sh hf`.

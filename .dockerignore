@@ -12,3 +12,6 @@ scheduling.db
 tests/
 scripts/
 artifacts/
+# Data Doctor is deployed separately (HF Space), not run by the web image.
+# Excluding it keeps its ~330 MB of artifacts + ML source out of this image.
+projects/health_assistant/

@@ -10,6 +10,7 @@ as a sub-app on its own URL prefix.
 |---|---|---|
 | `/scheduler` | [Scheduler](projects/scheduler/README.md) | Optimization-based weekly scheduling app (FastAPI + FullCalendar + OR-Tools). |
 | `/mycompanioncv` | [MyCompanionCV](projects/mycompanioncv/README.md) | AI chatbot that answers as Hugo, grounded in his CV (Gradio + OpenAI). |
+| `/datadoctor` | [Data Doctor](projects/health_assistant/README.md) | Clinical-analytics agent (Streamlit + Strands + XGBoost + RAG). Too heavy for the VM, so it runs on a free Hugging Face Space and `/datadoctor` embeds it in an iframe. |
 
 ## Repo layout
 
@@ -20,12 +21,14 @@ as a sub-app on its own URL prefix.
 │   └── frontend/           # landing.html, i18n.js
 ├── projects/
 │   ├── scheduler/          # self-contained: own backend/, frontend/, README
-│   └── mycompanioncv/      # self-contained: own app.py, README (loads from artifacts/mycompanioncv/)
+│   ├── mycompanioncv/      # self-contained: own app.py, README (loads from artifacts/mycompanioncv/)
+│   └── health_assistant/   # Data Doctor — own Dockerfile, deployed to a Hugging
+│                           # Face Space (not mounted); /datadoctor iframes it
 ├── artifacts/              # gitignored. Landing-page files at the root;
 │                           # per-project assets under artifacts/<project>/
 │                           # (e.g. artifacts/mycompanioncv/). Bind-mounted
 │                           # into the container in both dev and prod.
-├── tests/                  # pytest suite (currently scheduler-only)
+├── tests/                  # pytest suite (scheduler + /datadoctor route)
 ├── Dockerfile              # builds the whole portfolio
 ├── docker-compose.yml      # web + Caddy reverse proxy
 ├── Caddyfile               # serves hugobarros.cc
@@ -46,6 +49,11 @@ uv run uvicorn portfolio.app:app --reload
 
 The chatbot needs `OPENAI_API_KEY` (and optionally `PUSHOVER_TOKEN` /
 `PUSHOVER_USER` for push notifications). Put them in a `.env` file at repo root.
+
+Data Doctor does **not** run in this process — it's hosted on a Hugging Face
+Space. The `/datadoctor` route just iframes it; set `DATADOCTOR_URL` in `.env`
+to the Space URL (falls back to a placeholder if unset). See
+[projects/health_assistant/DEPLOY_HF.md](projects/health_assistant/DEPLOY_HF.md).
 
 ## Run with Docker
 
@@ -72,6 +80,15 @@ because the disk is I/O bound. The custom Caddy image (stock Caddy + the
 (public), and pulled on the VM.
 
 ### Routine deploy (code changes)
+
+One command from your laptop — pushes to GitHub, redeploys the portfolio on the
+VM, and syncs Data Doctor's code to the HF Space:
+
+```bash
+./deploy.sh          # or: ./deploy.sh vm  |  ./deploy.sh hf
+```
+
+Or do it manually on the VM:
 
 ```bash
 ssh hugobarros96@35.231.149.237

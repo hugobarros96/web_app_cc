@@ -1,14 +1,3 @@
----
-title: Data Doctor
-emoji: 🩺
-colorFrom: indigo
-colorTo: green
-sdk: docker
-app_port: 8501
-pinned: false
-short_description: Clinical-analytics assistant demo. Not for clinical use.
----
-
 # Data Doctor 🩺
 
 A clinical-analytics assistant: a Streamlit chat UI over an LLM **agent** that

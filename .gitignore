@@ -27,3 +27,8 @@ tool_call_results_log.txt
 # README is kept tracked so people landing on the public repo see what's here.
 /artifacts/*
 !/artifacts/README.md
+
+# Data Doctor runtime artifacts (FAISS indices + trained models, ~330 MB).
+# Kept in the working tree so deploy.sh can push them to the HF Space, but too
+# big for GitHub. The HF Space repo (git-LFS) is their versioned home.
+/projects/health_assistant/artifacts/

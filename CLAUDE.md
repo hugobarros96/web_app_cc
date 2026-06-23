@@ -12,14 +12,17 @@ its own URL prefix.
 │   └── frontend/           # landing.html, i18n.js
 ├── projects/
 │   ├── scheduler/          # self-contained: backend/, frontend/, README
-│   └── mycompanioncv/      # self-contained: app.py, README
+│   ├── mycompanioncv/      # self-contained: app.py, README
+│   └── health_assistant/   # Data Doctor: Streamlit + ML. Own Dockerfile;
+│                           # deployed to a Hugging Face Space, not mounted.
 ├── artifacts/              # gitignored. Landing-page files (videos, profile
 │                           # photo, links.yaml) sit at the root; per-project
 │                           # assets go under artifacts/<project>/
 │                           # (e.g. artifacts/mycompanioncv/ holds CV, summary,
 │                           # system prompt). Bind-mounted into the container
 │                           # in dev and prod.
-├── tests/                  # pytest suite (scheduler-only at the moment)
+├── deploy.sh               # one-command deploy (GitHub + VM + HF Space)
+├── tests/                  # pytest suite (scheduler + /datadoctor route)
 ├── Dockerfile, docker-compose.yml, Caddyfile
 └── pyproject.toml          # all deps in one lockfile
 ```
@@ -33,6 +36,8 @@ project's own folder.
 - `/static/*` → portfolio assets (`i18n.js` for the landing)
 - `/scheduler/*` → mounted scheduler sub-app
 - `/mycompanioncv` → mounted Gradio chatbot
+- `/datadoctor` → HTML page that iframes the Data Doctor Hugging Face Space
+  (URL from the `DATADOCTOR_URL` env var; placeholder if unset)
 
 ## Adding a new project
 1. Create `projects/<name>/` with its own `app.py` (FastAPI sub-app or Gradio Blocks).
@@ -48,6 +53,12 @@ project's own folder.
    the container. Reference it from the project's `app.py` via
    `Path(__file__).resolve().parents[2] / "artifacts" / "<name>"`.
 
+**Exception for heavy / non-mountable apps** (see Data Doctor below): if a
+project cannot mount in-process (e.g. Streamlit) or is too heavy for the 1 GB
+VM, do NOT add its deps to the top-level `pyproject.toml` (step 5). Keep it as a
+self-contained image with its own Dockerfile, deploy it off-VM (Hugging Face
+Space), and add only a small route in `portfolio/app.py` that iframes it.
+
 ## Scheduler project
 Optimization-based weekly scheduler (FastAPI + FullCalendar + OR-Tools CP-SAT).
 See [projects/scheduler/README.md](projects/scheduler/README.md) for the
@@ -59,6 +70,36 @@ Gradio chatbot that answers as Hugo, grounded in his CV PDF + summary.
 See [projects/mycompanioncv/README.md](projects/mycompanioncv/README.md).
 Needs `OPENAI_API_KEY` (and optionally `PUSHOVER_TOKEN`/`PUSHOVER_USER`)
 in a `.env` file at the repo root.
+
+## Data Doctor project
+Clinical-analytics assistant: Streamlit UI over a Strands agent (XGBoost
+predictions, sandboxed pandas analytics, hybrid FAISS+BM25 RAG with a
+cross-encoder reranker, guardrails, MLflow tracing). See
+[projects/health_assistant/README.md](projects/health_assistant/README.md).
+
+It loads torch + transformer models (~1.5 to 2.5 GB RAM), which the 1 GB VM
+cannot run, and Streamlit cannot be mounted in-process anyway. So it is NOT a
+mounted sub-app: it runs as its own image on a free Hugging Face Space (16 GB),
+and `/datadoctor` in `portfolio/app.py` just iframes that Space. Set
+`DATADOCTOR_URL` in the repo-root `.env` to the Space URL (it falls back to a
+placeholder if unset, which will refuse to frame).
+
+- Code: `projects/health_assistant/` with its own `Dockerfile` + `pyproject.toml`
+  (CPU-only torch via the PyTorch CPU index, ~2.3 GB image vs ~6.4 GB CUDA).
+- Runtime artifacts (FAISS indices ~322 MB + models) live in
+  `projects/health_assistant/artifacts/`, **gitignored** (too big for GitHub) but
+  present in the working tree so the project is self-contained. The whole project
+  is also excluded from the `web` image via `.dockerignore` (the VM never needs
+  it). The HF Space repo (git-LFS) is their versioned home.
+- Space secrets: `OPENAI_API_KEY` (required), optional `SERPA_API_KEY`.
+- One-time Space setup: [projects/health_assistant/DEPLOY_HF.md](projects/health_assistant/DEPLOY_HF.md).
+- Routine sync to the Space: `./deploy.sh hf` (clones with
+  `GIT_LFS_SKIP_SMUDGE=1`, mirrors all of `projects/health_assistant/` including
+  the gitignored `artifacts/`, pushes only what changed via git-LFS). Fully
+  self-contained to this repo, no external source repo needed.
+- `./deploy.sh` also rsyncs the gitignored `artifacts/` to the VM (the `vm` step)
+  so the landing videos / CV / chatbot summary reach production without a manual
+  rsync.
 
 ## Run locally
 ```bash
@@ -97,7 +138,12 @@ PAT is defined in .secrets - PAT=
   is built. Uses BuildKit cache mounts (`/root/.cache/go-build`, `/go/pkg/mod`)
   so local rebuilds reuse Go's module + compile caches.
 
-### Routine deploy (code changes only) — runs on the VM
+### Routine deploy (code changes only)
+
+Easiest: `./deploy.sh` from the laptop pushes to GitHub, redeploys the portfolio
+on the VM, and syncs Data Doctor's code to the HF Space (`./deploy.sh vm` or
+`./deploy.sh hf` for one target). The manual VM flow below is the equivalent of
+the `vm` part:
 
 ```bash
 ssh hugobarros96@35.231.149.237
